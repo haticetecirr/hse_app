@@ -1,0 +1,435 @@
+// Fabrika ISG - Is Kazasi & Ramak Kala Bildirim Sistemi
+// Prisma sema tanimi
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// KULLANICI, ROL, IZIN, RUTBE, BIRIM
+// ============================================================
+
+enum UserStatus {
+  PENDING // Kayit sonrasi bekleme
+  VERIFIED // Admin onayladi
+  REJECTED // Admin reddetti
+  SUSPENDED // Askiya alindi
+}
+
+// Rutbe - yetki genisligini etkiler (bilgi amacli + siralama)
+enum Rank {
+  WORKER // Isci
+  TEAM_LEAD // Ekip Lideri / Formen
+  SUPERVISOR // Sef
+  ENGINEER // Muhendis
+  HSE_SPECIALIST // ISG Uzmani
+  HSE_MANAGER // ISG Muduru
+  MANAGER // Mudur
+  DIRECTOR // Direktor
+}
+
+// Granuler izinler - rollere atanir
+enum Permission {
+  // Bildirim (rapor) islemleri
+  REPORT_CREATE_ACCIDENT // Is kazasi bildirimi olusturma
+  REPORT_CREATE_NEARMISS // Ramak kala bildirimi olusturma
+  REPORT_VIEW_OWN // Kendi bildirimlerini gorme
+  REPORT_VIEW_DEPARTMENT // Biriminin bildirimlerini gorme
+  REPORT_VIEW_ALL // Tum bildirimleri gorme
+  REPORT_UPDATE // Bildirim guncelleme
+  REPORT_DELETE // Bildirim silme
+  REPORT_INVESTIGATE // Sorusturma yurutme (atanma)
+  REPORT_ASSIGN // Bildirimi birine atama
+  REPORT_CLOSE // Bildirim kapatma
+  ACTION_MANAGE // Duzeltici/onleyici faaliyet yonetimi
+
+  // Kullanici / yetki yonetimi
+  USER_VIEW // Kullanicilari gorme
+  USER_APPROVE // Kayit onaylama/reddetme
+  USER_MANAGE // Rol/rutbe/birim atama, askiya alma
+  ROLE_MANAGE // Rol ve izin yonetimi
+  DEPARTMENT_MANAGE // Birim yonetimi
+
+  // Diger
+  NOTIFICATION_SEND // Manuel bildirim gonderme
+  DASHBOARD_VIEW // Panel/istatistik gorme
+  AUDIT_VIEW // Denetim kaydi (audit log) gorme
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  isSystem    Boolean      @default(false) // Silinemez sistem rolleri
+  permissions Permission[]
+  users       User[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String?  @unique
+  description String?
+  members     UserDepartment[]
+  reports     Report[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  status       UserStatus @default(PENDING)
+  rank         Rank?
+  isSuperAdmin Boolean    @default(false)
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  departments UserDepartment[]
+
+  // Denetim
+  verifiedAt   DateTime?
+  verifiedById String?
+  verifiedBy   User?     @relation("UserVerifier", fields: [verifiedById], references: [id])
+  verifiedUsers User[]   @relation("UserVerifier")
+
+  // Iliskiler
+  reports            Report[]       @relation("Reporter")
+  assignedReports    Report[]       @relation("Assignee")
+  closedReports      Report[]       @relation("Closer")
+  assignedActions    CorrectiveAction[]
+  notifications      Notification[]
+  sentNotifications  Notification[] @relation("NotificationSender")
+  auditLogs          AuditLog[]     @relation("AuditActor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Kullanici - Birim cok-a-cok
+model UserDepartment {
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  assignedAt   DateTime   @default(now())
+
+  @@id([userId, departmentId])
+}
+
+// ============================================================
+// BILDIRIMLER (Is Kazasi & Ramak Kala) - tek tablo, tip ayrimi
+// ============================================================
+
+enum ReportType {
+  ACCIDENT // Is kazasi
+  NEAR_MISS // Ramak kala
+}
+
+enum ReportStatus {
+  DRAFT // Taslak
+  SUBMITTED // Gonderildi
+  UNDER_REVIEW // Inceleniyor
+  INVESTIGATING // Sorusturuluyor
+  ACTIONS_PENDING // Duzeltici faaliyet bekliyor
+  CLOSED // Kapatildi
+  REJECTED // Reddedildi / gecersiz
+}
+
+// Is kazasi turu
+enum AccidentType {
+  SLIP_TRIP_FALL // Kayma/Takilma/Duşme (ayni seviye)
+  FALL_FROM_HEIGHT // Yuksekten dusme
+  STRUCK_BY_OBJECT // Cisim carpmasi/dusmesi
+  CAUGHT_IN_BETWEEN // Sikisma/Ezilme
+  ELECTRIC_SHOCK // Elektrik carpmasi
+  BURN_THERMAL // Termal yanik
+  CHEMICAL_EXPOSURE // Kimyasal maruziyet
+  CUT_LACERATION // Kesik/Yirtilma
+  MANUAL_HANDLING // Elle tasima/kaldirma
+  MACHINERY // Makine kazasi
+  VEHICLE_FORKLIFT // Arac/Forklift
+  FIRE_EXPLOSION // Yangin/Patlama
+  NOISE_VIBRATION // Gurultu/Titresim
+  BIOLOGICAL // Biyolojik
+  OTHER // Diger
+}
+
+// Kaza sonucu ciddiyeti (OSHA/ISG siniflandirmasi)
+enum OutcomeSeverity {
+  NO_INJURY // Yaralanmasiz (maddi hasar vb.)
+  FIRST_AID // Ilk yardim
+  MEDICAL_TREATMENT // Tibbi mudahale
+  RESTRICTED_WORK // Kisitli is / is degisikligi
+  LOST_TIME // Is gunu kayipli
+  FATALITY // Olumlu
+}
+
+enum PersonType {
+  EMPLOYEE // Calisan
+  CONTRACTOR // Taseron
+  VISITOR // Ziyaretci
+  OTHER
+}
+
+// Ramak kala kategorisi
+enum NearMissCategory {
+  UNSAFE_ACT // Guvensiz davranis
+  UNSAFE_CONDITION // Guvensiz durum
+  NEAR_MISS_EVENT // Ramak kala olayi (kil payi)
+  PROPERTY_DAMAGE // Maddi hasar (yaralanmasiz)
+  ENVIRONMENTAL // Cevresel (dokulme/sizinti)
+}
+
+// Tehlike kategorisi - global ISG standartlarina uygun
+enum HazardCategory {
+  SLIPS_TRIPS_FALLS // Kayma/Takilma/Duşme
+  WORKING_AT_HEIGHT // Yuksekte calisma
+  ELECTRICAL // Elektrik
+  FIRE_EXPLOSION // Yangin/Patlama
+  CHEMICAL // Kimyasal/Tehlikeli madde
+  MACHINERY_EQUIPMENT // Makine/Ekipman
+  MANUAL_HANDLING_ERGONOMICS // Elle tasima/Ergonomi
+  STRUCK_CAUGHT // Carpma/Sikisma
+  PRESSURE_CONFINED_SPACE // Basinc/Kapali alan
+  VEHICLE_TRAFFIC // Arac/Trafik
+  ENVIRONMENTAL_SPILL // Cevresel/Dokulme
+  NOISE_VIBRATION // Gurultu/Titresim
+  HOUSEKEEPING // Duzen/Tertip (5S)
+  PPE // Kisisel koruyucu donanim
+  OTHER // Diger
+}
+
+// 5x5 risk matrisi sonucu
+enum RiskLevel {
+  LOW // Dusuk
+  MEDIUM // Orta
+  HIGH // Yuksek
+  CRITICAL // Kritik/Cok yuksek
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  referenceNo String       @unique // Insan-okur: HSE-2026-000123
+  type        ReportType
+  status      ReportStatus @default(SUBMITTED)
+
+  // Ortak alanlar
+  reporterId   String
+  // Restrict: bildirimi olan kullanici silinemez -> kayitlar korunur
+  reporter     User        @relation("Reporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  occurredAt   DateTime // Olayin gerceklestigi an
+  reportedAt   DateTime    @default(now())
+  location     String
+  description  String
+  witnesses    String? // Sahitler (serbest metin)
+  attachments  String[] // Dosya yollari/URL'leri
+
+  // --- IS KAZASI'na ozel ---
+  accidentType      AccidentType?
+  otherAccidentType String? // accidentType=OTHER ise serbest metin
+  outcomeSeverity OutcomeSeverity?
+  isInjured       Boolean          @default(false)
+  injuredName     String?
+  injuredType     PersonType?
+  bodyInjuries    BodyInjury[]
+
+  // --- RAMAK KALA'ya ozel ---
+  nearMissCategory NearMissCategory?
+  hazardCategory   HazardCategory?
+  otherHazard      String? // hazardCategory=OTHER ise serbest metin
+  severityScore    Int? // 1-5 (olasi ciddiyet)
+  likelihoodScore  Int? // 1-5 (olasilik)
+  riskScore        Int? // severity * likelihood (1-25)
+  riskLevel        RiskLevel?
+  rootCause        String? // Kok neden analizi
+  immediateAction  String? // Aninda alinan onlem
+
+  // Is akisi / atama
+  assignedToId String?
+  assignedTo   User?   @relation("Assignee", fields: [assignedToId], references: [id])
+  closedById   String?
+  closedBy     User?   @relation("Closer", fields: [closedById], references: [id])
+  closedAt     DateTime?
+  closingNote  String?
+
+  correctiveActions CorrectiveAction[]
+  notifications     Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([reporterId])
+}
+
+// Vucut haritasi - yaralanma noktalari
+enum BodyPart {
+  HEAD // Bas
+  FACE // Yuz
+  EYE // Goz
+  EAR // Kulak
+  NECK // Boyun
+  SHOULDER // Omuz
+  UPPER_ARM // Ust kol
+  ELBOW // Dirsek
+  FOREARM // On kol
+  WRIST // Bilek
+  HAND // El
+  FINGER // Parmak (el)
+  CHEST // Gogus
+  ABDOMEN // Karin
+  BACK // Sirt
+  LOWER_BACK // Bel
+  HIP // Kalca
+  GROIN // Kasik
+  THIGH // Uyluk
+  KNEE // Diz
+  LOWER_LEG // Alt bacak/baldir
+  ANKLE // Ayak bilegi
+  FOOT // Ayak
+  TOE // Parmak (ayak)
+  INTERNAL // Ic organ
+  MULTIPLE // Birden fazla/genel
+  OTHER
+}
+
+enum BodySide {
+  LEFT // Sol
+  RIGHT // Sag
+  CENTER // Orta/Belirsiz
+}
+
+enum BodyView {
+  FRONT // On
+  BACK // Arka
+}
+
+enum InjuryType {
+  BRUISE // Ezik/Cürük
+  CUT_LACERATION // Kesik/Yirtik
+  FRACTURE // Kirik
+  BURN // Yanik
+  SPRAIN_STRAIN // Burkulma/Incinme
+  DISLOCATION // Cikik
+  AMPUTATION // Uzuv kaybi
+  CRUSH // Ezilme
+  PUNCTURE // Delici
+  CHEMICAL_BURN // Kimyasal yanik
+  ELECTRIC // Elektrik yaralanmasi
+  FOREIGN_BODY // Yabanci cisim
+  OTHER
+}
+
+enum InjurySeverity {
+  MINOR // Hafif
+  MODERATE // Orta
+  SEVERE // Ciddi
+  CRITICAL // Kritik
+}
+
+model BodyInjury {
+  id       String         @id @default(cuid())
+  reportId String
+  report   Report         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  bodyPart BodyPart
+  side     BodySide       @default(CENTER)
+  view     BodyView       @default(FRONT)
+  type     InjuryType
+  severity InjurySeverity @default(MINOR)
+  note     String?
+  createdAt DateTime      @default(now())
+}
+
+// Duzeltici / Onleyici Faaliyet (CAPA)
+enum ActionStatus {
+  OPEN // Acik
+  IN_PROGRESS // Devam ediyor
+  COMPLETED // Tamamlandi
+  VERIFIED // Dogrulandi/Kapatildi
+  OVERDUE // Gecikmis
+}
+
+model CorrectiveAction {
+  id           String       @id @default(cuid())
+  reportId     String
+  report       Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  description  String
+  assignedToId String?
+  assignedTo   User?        @relation(fields: [assignedToId], references: [id])
+  dueDate      DateTime?
+  status       ActionStatus @default(OPEN)
+  completedAt  DateTime?
+  note         String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+// ============================================================
+// BILDIRIMLER (uygulama ici notification)
+// ============================================================
+
+enum NotificationType {
+  ACCOUNT_APPROVED // Hesabin onaylandi
+  ACCOUNT_REJECTED // Hesabin reddedildi
+  ROLE_ASSIGNED // Rol/rutbe atandi
+  REPORT_SUBMITTED // Yeni bildirim (yetkililere)
+  REPORT_ASSIGNED // Bildirim sana atandi
+  REPORT_STATUS_CHANGED // Bildirim durumu degisti
+  ACTION_ASSIGNED // Faaliyet sana atandi
+  GENERAL // Genel/manuel duyuru
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String // Alici
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId  String? // Gonderen (manuel duyurularda)
+  sender    User?            @relation("NotificationSender", fields: [senderId], references: [id])
+  type      NotificationType
+  title     String
+  message   String
+  reportId  String?
+  report    Report?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+// ============================================================
+// DENETIM KAYDI (Audit Log) - kim, ne zaman, ne yapti
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String? // Islemi yapan (sistem ise null)
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorName  String // Denetim icin isim anlik saklanir (kullanici silinse de kalir)
+  action     String // Or. USER_APPROVE, REPORT_CREATE, REPORT_STATUS_CHANGE
+  entityType String // Or. User, Report, Role, Department, CorrectiveAction
+  entityId   String?
+  summary    String // Insan-okur ozet
+  meta       Json? // Ek ayrinti (eski/yeni deger vb.)
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}

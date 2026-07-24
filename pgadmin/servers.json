@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "HSE Docker",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "hse_db",
+      "Username": "hse",
+      "SSLMode": "prefer",
+      "Comment": "Uygulama veritabani (docker network ici: host=postgres, port=5432)"
+    }
+  }
+}
