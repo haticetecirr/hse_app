@@ -62,6 +62,8 @@ export function Layout({ children }: { children: ReactNode }) {
           </NavLink>
         )}
 
+        // Admin section
+
         {showAdmin && <div className="nav-section">{t('nav.admin')}</div>}
         {canUsers && (
           <NavLink to="/admin/users" className="nav-link">
