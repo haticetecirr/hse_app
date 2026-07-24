@@ -46,6 +46,7 @@ export function Layout({ children }: { children: ReactNode }) {
             {t('nav.reports')}
           </NavLink>
         )}
+        //TEST COMMIT
 
         {(canCreateAccident || canCreateNearMiss) && (
           <div className="nav-section">{t('nav.reports')}</div>
