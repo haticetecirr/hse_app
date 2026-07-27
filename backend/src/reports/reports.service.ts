@@ -47,13 +47,18 @@ export class ReportsService {
     return { score, level };
   }
 
+  // Referans no: HSE-GG.AA.YYYY-NNN (sira her gun sifirdan baslar)
   private async nextReferenceNo(): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `HSE-${year}-`;
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const prefix = `HSE-${dd}.${mm}.${yyyy}-`;
+    // Bugune ait bildirim sayisini bul -> gunluk sira
     const count = await this.prisma.report.count({
       where: { referenceNo: { startsWith: prefix } },
     });
-    return `${prefix}${String(count + 1).padStart(5, '0')}`;
+    return `${prefix}${String(count + 1).padStart(3, '0')}`;
   }
 
   async createAccident(dto: CreateAccidentDto, user: AuthUser) {
