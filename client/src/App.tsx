@@ -13,6 +13,7 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminRolesPage } from './pages/AdminRolesPage';
 import { AdminDepartmentsPage } from './pages/AdminDepartmentsPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 export function App() {
   const { me, loading } = useAuth();
@@ -50,6 +51,7 @@ export function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/reports" element={<ReportsListPage />} />
         <Route path="/reports/:id" element={<ReportDetailPage />} />
         <Route path="/reports/new/accident" element={<AccidentFormPage />} />

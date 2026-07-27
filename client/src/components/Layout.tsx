@@ -84,6 +84,9 @@ export function Layout({ children }: { children: ReactNode }) {
         )}
 
         <div style={{ flex: 1 }} />
+        <NavLink to="/profile" className="nav-link">
+          {t('nav.profile')}
+        </NavLink>
         <div
           className="nav-link"
           onClick={() => {
@@ -112,7 +115,16 @@ export function Layout({ children }: { children: ReactNode }) {
             </button>
           </div>
           <NotificationBell />
-          <div className="flex gap-8" style={{ alignItems: 'center' }}>
+          <NavLink
+            to="/profile"
+            className="flex gap-8"
+            style={{
+              alignItems: 'center',
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+            title={t('profile.title')}
+          >
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>
                 {me?.firstName} {me?.lastName}
@@ -123,7 +135,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   : me?.role?.name || t('admin.noRole')}
               </div>
             </div>
-          </div>
+          </NavLink>
         </div>
         <div className="content">{children}</div>
       </div>

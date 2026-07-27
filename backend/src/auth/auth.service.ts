@@ -7,7 +7,12 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -127,6 +132,55 @@ export class AuthService {
         name: d.department.name,
       })),
     };
+  }
+
+  // Kullanici kendi profilini gunceller (ad, soyad, telefon)
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone ?? null,
+      },
+    });
+
+    await this.audit.log({
+      actor: { id: userId, name: `${dto.firstName} ${dto.lastName}` },
+      action: 'PROFILE_UPDATE',
+      entityType: 'User',
+      entityId: userId,
+      summary: `Profil guncellendi: ${dto.firstName} ${dto.lastName}`,
+    });
+
+    return this.me(userId);
+  }
+
+  // Kullanici kendi sifresini degistirir (mevcut sifre dogrulanir)
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const ok = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Mevcut sifre hatali.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    await this.audit.log({
+      actor: { id: userId, name: user.email },
+      action: 'PASSWORD_CHANGE',
+      entityType: 'User',
+      entityId: userId,
+      summary: `Sifre degistirildi: ${user.email}`,
+    });
+
+    return { message: 'Sifreniz guncellendi.' };
   }
 
   private async notifyApprovers(newUserId: string, fullName: string) {
