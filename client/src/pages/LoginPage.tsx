@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { errorMessage } from '../api/client';
+import { playAdminChime } from '../utils/sound';
 import i18n from '../i18n';
 
 export function LoginPage() {
@@ -19,7 +20,9 @@ export function LoginPage() {
     setError('');
     setBusy(true);
     try {
-      await login(email, password);
+      const profile = await login(email, password);
+      // Sadece super admin girisinde havali ses efekti
+      if (profile.isSuperAdmin) playAdminChime();
       navigate('/');
     } catch (err) {
       setError(errorMessage(err));
