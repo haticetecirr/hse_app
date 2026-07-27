@@ -235,7 +235,7 @@ export function ReportDetailPage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>{t('bodyPart.HEAD').slice(0, 0)}Bolge</th>
+                        <th>Bölge</th>
                         <th>{t('accidentForm.injuryType')}</th>
                         <th>{t('accidentForm.severity')}</th>
                         <th>{t('accidentForm.note')}</th>

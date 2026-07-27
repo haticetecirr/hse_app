@@ -21,7 +21,7 @@ export function App() {
   if (loading) {
     return (
       <div className="auth-wrap">
-        <div style={{ color: '#fff' }}>Yukleniyor...</div>
+        <div style={{ color: '#fff' }}>Yükleniyor...</div>
       </div>
     );
   }

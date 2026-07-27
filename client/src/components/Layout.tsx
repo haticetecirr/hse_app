@@ -34,7 +34,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <strong>ISG</strong>
+          <strong>İSG</strong>
           <span>{t('appSubtitle')}</span>
         </div>
 

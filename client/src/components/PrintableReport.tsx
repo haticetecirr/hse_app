@@ -317,7 +317,7 @@ export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
               >
                 🎥{' '}
                 {r.attachments.filter((u) => isVideoUrl(u)).length} video eki
-                bu bildirime baglidir (uygulama uzerinden izlenebilir).
+                bu bildirime bağlıdır (uygulama üzerinden izlenebilir).
               </div>
             )}
           </div>

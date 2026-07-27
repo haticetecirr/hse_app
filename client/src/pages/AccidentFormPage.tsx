@@ -154,7 +154,7 @@ export function AccidentFormPage() {
               value={form.location}
               onChange={(e) => set('location', e.target.value)}
               required
-              placeholder="Or. Uretim hatti 3, pres bolumu"
+              placeholder="Ör. Üretim hattı 3, pres bölümü"
             />
           </div>
           <div className="row">
@@ -202,7 +202,7 @@ export function AccidentFormPage() {
               onChange={(e) => set('description', e.target.value)}
               required
               minLength={10}
-              placeholder="Olayin nasil gerceklestigini aciklayin..."
+              placeholder="Olayın nasıl gerçekleştiğini açıklayın..."
             />
           </div>
           <div className="field">

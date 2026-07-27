@@ -31,5 +31,5 @@ api.interceptors.response.use(
 export function errorMessage(err: any): string {
   const msg = err?.response?.data?.message;
   if (Array.isArray(msg)) return msg.join(', ');
-  return msg || err?.message || 'Bir hata olustu.';
+  return msg || err?.message || 'Bir hata oluştu.';
 }

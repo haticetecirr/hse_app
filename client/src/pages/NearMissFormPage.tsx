@@ -200,7 +200,7 @@ export function NearMissFormPage() {
             <textarea
               value={form.rootCause}
               onChange={(e) => set('rootCause', e.target.value)}
-              placeholder="5 Neden / kok neden analizi..."
+              placeholder="5 Neden / kök neden analizi..."
             />
           </div>
           <div className="field">
