@@ -21,7 +21,7 @@ export function LoginPage() {
     setBusy(true);
     try {
       const profile = await login(email, password);
-      // Sadece super admin girisinde havali ses efekti
+      // Sadece super admin girisinde neseli kutlama sesi
       if (profile.isSuperAdmin) playAdminChime();
       navigate('/');
     } catch (err) {
