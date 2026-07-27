@@ -360,6 +360,8 @@ export const tr = {
       newDepartment: 'Yeni Birim',
       departmentName: 'Birim Adi',
       departmentCode: 'Kod',
+      codeHint: '3 karakter',
+      codeLengthError: 'Birim kodu tam olarak 3 karakter olmali.',
       members: 'Uye',
       broadcast: 'Duyuru Gonder',
       broadcastTitle: 'Baslik',

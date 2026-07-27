@@ -360,6 +360,8 @@ export const en = {
       newDepartment: 'New Department',
       departmentName: 'Department Name',
       departmentCode: 'Code',
+      codeHint: '3 characters',
+      codeLengthError: 'Department code must be exactly 3 characters.',
       members: 'Members',
       broadcast: 'Broadcast',
       broadcastTitle: 'Title',

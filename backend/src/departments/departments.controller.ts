@@ -9,7 +9,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
@@ -24,6 +24,7 @@ class DepartmentDto {
 
   @IsOptional()
   @IsString()
+  @Length(3, 3, { message: 'Birim kodu 3 karakter olmali.' })
   code?: string;
 
   @IsOptional()

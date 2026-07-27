@@ -21,6 +21,11 @@ export function AdminDepartmentsPage() {
 
   async function create() {
     if (!form.name) return;
+    if (form.code && form.code.length !== 3) {
+      setError(t('admin.codeLengthError'));
+      return;
+    }
+    setError('');
     try {
       await api.post('/departments', {
         name: form.name,
@@ -62,6 +67,8 @@ export function AdminDepartmentsPage() {
             <label>{t('admin.departmentCode')}</label>
             <input
               value={form.code}
+              maxLength={3}
+              placeholder={t('admin.codeHint')}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
             />
           </div>
