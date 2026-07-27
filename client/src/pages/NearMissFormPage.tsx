@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api, errorMessage } from '../api/client';
-import { RiskMatrix, riskLevel } from '../components/RiskMatrix';
+import { riskLevel } from '../components/RiskMatrix';
 import { PhotoUpload } from '../components/PhotoUpload';
 import {
   NEAR_MISS_CATEGORIES,
@@ -159,50 +159,38 @@ export function NearMissFormPage() {
 
         <div className="card">
           <div className="card-title">{t('nearMissForm.riskAssessment')}</div>
-          <div className="bodymap-layout">
-            <div>
-              <RiskMatrix
-                severity={form.severityScore}
-                likelihood={form.likelihoodScore}
-                onChange={(s, l) => {
-                  set('severityScore', s);
-                  set('likelihoodScore', l);
-                }}
-              />
-              <div className="mt-16">
-                <span className={`badge risk-${level}`} style={{ fontSize: 14 }}>
-                  {t('nearMissForm.riskResult')}: {score} — {t(`riskLevel.${level}`)}
-                </span>
-              </div>
+          <div className="row">
+            <div className="field">
+              <label>{t('nearMissForm.severity')}</label>
+              <select
+                value={form.severityScore}
+                onChange={(e) => set('severityScore', +e.target.value)}
+              >
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n} — {t(`nearMissForm.severityHelp.${n}`)}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div>
-              <div className="field">
-                <label>{t('nearMissForm.severity')}</label>
-                <select
-                  value={form.severityScore}
-                  onChange={(e) => set('severityScore', +e.target.value)}
-                >
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <option key={n} value={n}>
-                      {n} — {t(`nearMissForm.severityHelp.${n}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>{t('nearMissForm.likelihood')}</label>
-                <select
-                  value={form.likelihoodScore}
-                  onChange={(e) => set('likelihoodScore', +e.target.value)}
-                >
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <option key={n} value={n}>
-                      {n} — {t(`nearMissForm.likelihoodHelp.${n}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="field">
+              <label>{t('nearMissForm.likelihood')}</label>
+              <select
+                value={form.likelihoodScore}
+                onChange={(e) => set('likelihoodScore', +e.target.value)}
+              >
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n} — {t(`nearMissForm.likelihoodHelp.${n}`)}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div className="mt-16">
+            <span className={`badge risk-${level}`} style={{ fontSize: 14 }}>
+              {t('nearMissForm.riskResult')}: {score} — {t(`riskLevel.${level}`)}
+            </span>
           </div>
         </div>
 
