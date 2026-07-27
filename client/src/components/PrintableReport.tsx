@@ -246,7 +246,14 @@ export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
 
         {/* EK SAYFA: Fotograflar / Videolar (yeni sayfada, net) */}
         {r.attachments && r.attachments.length > 0 && (
-          <div className="html2pdf__page-break" style={{ paddingTop: 8 }}>
+          <div
+            className="pdf-attachments-page"
+            style={{
+              breakBefore: 'page',
+              pageBreakBefore: 'always',
+              paddingTop: 8,
+            }}
+          >
             <div
               style={{
                 fontSize: 15,
@@ -265,7 +272,13 @@ export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
               .map((url, i) => (
                 <div
                   key={url}
-                  style={{ marginBottom: 14, textAlign: 'center' }}
+                  className="pdf-photo"
+                  style={{
+                    marginBottom: 14,
+                    textAlign: 'center',
+                    breakInside: 'avoid',
+                    pageBreakInside: 'avoid',
+                  }}
                 >
                   <img
                     src={url}

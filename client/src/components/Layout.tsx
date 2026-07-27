@@ -46,7 +46,6 @@ export function Layout({ children }: { children: ReactNode }) {
             {t('nav.reports')}
           </NavLink>
         )}
-        //TEST COMMIT
 
         {(canCreateAccident || canCreateNearMiss) && (
           <div className="nav-section">{t('nav.reports')}</div>
@@ -61,8 +60,6 @@ export function Layout({ children }: { children: ReactNode }) {
             {t('nav.newNearMiss')}
           </NavLink>
         )}
-
-        // Admin section
 
         {showAdmin && <div className="nav-section">{t('nav.admin')}</div>}
         {canUsers && (
