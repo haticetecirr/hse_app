@@ -42,6 +42,10 @@ export class BodyInjuryDto {
   type: InjuryType;
 
   @IsOptional()
+  @IsString()
+  otherType?: string; // type=OTHER ise
+
+  @IsOptional()
   @IsEnum(InjurySeverity)
   severity?: InjurySeverity;
 
@@ -91,6 +95,10 @@ export class CreateAccidentDto {
   @IsOptional()
   @IsEnum(PersonType)
   injuredType?: PersonType;
+
+  @IsOptional()
+  @IsString()
+  otherInjuredType?: string; // injuredType=OTHER ise
 
   @IsOptional()
   @IsArray()

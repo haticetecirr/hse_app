@@ -77,6 +77,8 @@ export class ReportsService {
         isInjured: dto.isInjured,
         injuredName: dto.injuredName,
         injuredType: dto.injuredType,
+        otherInjuredType:
+          dto.injuredType === 'OTHER' ? dto.otherInjuredType : null,
         bodyInjuries: dto.bodyInjuries
           ? {
               create: dto.bodyInjuries.map((b) => ({
@@ -84,6 +86,7 @@ export class ReportsService {
                 side: b.side ?? 'CENTER',
                 view: b.view ?? 'FRONT',
                 type: b.type,
+                otherType: b.type === 'OTHER' ? b.otherType : null,
                 severity: b.severity ?? 'MINOR',
                 note: b.note,
               })),

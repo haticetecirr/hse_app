@@ -127,7 +127,9 @@ export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
                 {row(t('accidentForm.injuredName'), r.injuredName)}
                 {row(
                   t('accidentForm.injuredType'),
-                  r.injuredType && t(`personType.${r.injuredType}`),
+                  r.injuredType === 'OTHER' && r.otherInjuredType
+                    ? r.otherInjuredType
+                    : r.injuredType && t(`personType.${r.injuredType}`),
                 )}
               </tbody>
             </table>
@@ -159,7 +161,11 @@ export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
                             ` (${t(`bodySide.${inj.side}`)})`}{' '}
                           · {t(`bodyView.${inj.view}`)}
                         </td>
-                        <td style={tdc}>{t(`injuryType.${inj.type}`)}</td>
+                        <td style={tdc}>
+                          {inj.type === 'OTHER' && inj.otherType
+                            ? inj.otherType
+                            : t(`injuryType.${inj.type}`)}
+                        </td>
                         <td style={tdc}>
                           {t(`injurySeverity.${inj.severity}`)}
                         </td>

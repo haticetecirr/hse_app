@@ -246,6 +246,7 @@ model Report {
   isInjured       Boolean          @default(false)
   injuredName     String?
   injuredType     PersonType?
+  otherInjuredType String? // injuredType=OTHER ise serbest metin
   bodyInjuries    BodyInjury[]
 
   // --- RAMAK KALA'ya ozel ---
@@ -351,6 +352,7 @@ model BodyInjury {
   side     BodySide       @default(CENTER)
   view     BodyView       @default(FRONT)
   type     InjuryType
+  otherType String? // type=OTHER ise serbest metin
   severity InjurySeverity @default(MINOR)
   note     String?
   createdAt DateTime      @default(now())

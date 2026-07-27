@@ -221,7 +221,11 @@ export function ReportDetailPage() {
               />
               <Row
                 label={t('accidentForm.injuredType')}
-                value={r.injuredType && t(`personType.${r.injuredType}`)}
+                value={
+                  r.injuredType === 'OTHER' && r.otherInjuredType
+                    ? r.otherInjuredType
+                    : r.injuredType && t(`personType.${r.injuredType}`)
+                }
               />
               {r.bodyInjuries && r.bodyInjuries.length > 0 && (
                 <>
@@ -248,7 +252,11 @@ export function ReportDetailPage() {
                               · {t(`bodyView.${inj.view}`)}
                             </span>
                           </td>
-                          <td>{t(`injuryType.${inj.type}`)}</td>
+                          <td>
+                            {inj.type === 'OTHER' && inj.otherType
+                              ? inj.otherType
+                              : t(`injuryType.${inj.type}`)}
+                          </td>
                           <td>
                             <span className={`badge sev-${inj.severity}`}>
                               {t(`injurySeverity.${inj.severity}`)}

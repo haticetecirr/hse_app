@@ -36,6 +36,7 @@ export function AccidentFormPage() {
     isInjured: true,
     injuredName: '',
     injuredType: 'EMPLOYEE',
+    otherInjuredType: '',
   });
   const [attachments, setAttachments] = useState<string[]>([]);
   const [injuries, setInjuries] = useState<BodyInjury[]>([]);
@@ -45,6 +46,7 @@ export function AccidentFormPage() {
     view: string;
   } | null>(null);
   const [injuryType, setInjuryType] = useState('BRUISE');
+  const [otherInjuryType, setOtherInjuryType] = useState('');
   const [injurySeverity, setInjurySeverity] = useState('MINOR');
   const [injuryNote, setInjuryNote] = useState('');
   const [error, setError] = useState('');
@@ -70,11 +72,13 @@ export function AccidentFormPage() {
         side: selected.side,
         view: selected.view,
         type: injuryType,
+        otherType: injuryType === 'OTHER' ? otherInjuryType || undefined : undefined,
         severity: injurySeverity,
         note: injuryNote || undefined,
       },
     ]);
     setInjuryNote('');
+    setOtherInjuryType('');
     setSelected(null);
   }
 
@@ -95,6 +99,10 @@ export function AccidentFormPage() {
           form.accidentType === 'OTHER' ? form.otherAccidentType : undefined,
         injuredName: form.isInjured ? form.injuredName : undefined,
         injuredType: form.isInjured ? form.injuredType : undefined,
+        otherInjuredType:
+          form.isInjured && form.injuredType === 'OTHER'
+            ? form.otherInjuredType
+            : undefined,
         bodyInjuries: form.isInjured ? injuries : [],
         attachments,
       };
@@ -251,6 +259,17 @@ export function AccidentFormPage() {
                 </div>
               </div>
 
+              {form.injuredType === 'OTHER' && (
+                <div className="field">
+                  <label>{t('accidentForm.otherSpecify')} *</label>
+                  <input
+                    value={form.otherInjuredType}
+                    onChange={(e) => set('otherInjuredType', e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
               <div className="card-title mt-16">
                 {t('accidentForm.bodyMapTitle')}
               </div>
@@ -283,6 +302,16 @@ export function AccidentFormPage() {
                         ))}
                       </select>
                     </div>
+                    {injuryType === 'OTHER' && (
+                      <div className="field">
+                        <label>{t('accidentForm.otherSpecify')}</label>
+                        <input
+                          value={otherInjuryType}
+                          onChange={(e) => setOtherInjuryType(e.target.value)}
+                          disabled={!selected}
+                        />
+                      </div>
+                    )}
                     <div className="field">
                       <label>{t('accidentForm.severity')}</label>
                       <select

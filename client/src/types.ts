@@ -108,6 +108,7 @@ export interface BodyInjury {
   side: string;
   view: string;
   type: string;
+  otherType?: string;
   severity: string;
   note?: string;
 }
@@ -142,6 +143,7 @@ export interface Report {
   isInjured?: boolean;
   injuredName?: string;
   injuredType?: string;
+  otherInjuredType?: string;
   bodyInjuries?: BodyInjury[];
   // Near-miss
   nearMissCategory?: string;
