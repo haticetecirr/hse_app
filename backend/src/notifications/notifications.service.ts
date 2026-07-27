@@ -9,7 +9,30 @@ interface CreateNotification {
   message: string;
   reportId?: string;
   senderId?: string;
+  // Bildirimin konusu olan kullanici (or. onay bekleyen kayit)
+  targetUserId?: string;
 }
+
+// Bildirim listesinde hedef kullanicinin guncel durumu da donulur;
+// boylece istemci "tamamlandi" rozetini gosterebilir.
+const notificationSelect = {
+  id: true,
+  type: true,
+  title: true,
+  message: true,
+  reportId: true,
+  targetUserId: true,
+  isRead: true,
+  createdAt: true,
+  targetUser: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      status: true,
+    },
+  },
+};
 
 @Injectable()
 export class NotificationsService {
@@ -49,6 +72,7 @@ export class NotificationsService {
       where: { userId, ...(onlyUnread ? { isRead: false } : {}) },
       orderBy: { createdAt: 'desc' },
       take: 100,
+      select: notificationSelect,
     });
   }
 
@@ -62,6 +86,20 @@ export class NotificationsService {
   async markRead(userId: string, id: string) {
     await this.prisma.notification.updateMany({
       where: { id, userId },
+      data: { isRead: true },
+    });
+    return { ok: true };
+  }
+
+  // Bir kayit onaylanip/reddedilince tum onayculardaki ilgili
+  // "onay bekliyor" bildirimleri tamamlanmis (okundu) sayilir.
+  async resolveAccountApproval(targetUserId: string) {
+    await this.prisma.notification.updateMany({
+      where: {
+        type: 'ACCOUNT_PENDING_APPROVAL',
+        targetUserId,
+        isRead: false,
+      },
       data: { isRead: true },
     });
     return { ok: true };

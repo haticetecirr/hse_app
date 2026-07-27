@@ -112,6 +112,7 @@ model User {
   assignedActions    CorrectiveAction[]
   notifications      Notification[]
   sentNotifications  Notification[] @relation("NotificationSender")
+  targetedNotifications Notification[] @relation("NotificationTarget")
   auditLogs          AuditLog[]     @relation("AuditActor")
 
   createdAt DateTime @default(now())
@@ -387,6 +388,7 @@ model CorrectiveAction {
 // ============================================================
 
 enum NotificationType {
+  ACCOUNT_PENDING_APPROVAL // Yeni kayit onay bekliyor (onayculara)
   ACCOUNT_APPROVED // Hesabin onaylandi
   ACCOUNT_REJECTED // Hesabin reddedildi
   ROLE_ASSIGNED // Rol/rutbe atandi
@@ -408,10 +410,14 @@ model Notification {
   message   String
   reportId  String?
   report    Report?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  // Bildirimin konusu olan kullanici (or. onay bekleyen yeni kayit)
+  targetUserId String?
+  targetUser   User?         @relation("NotificationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
 
   @@index([userId, isRead])
+  @@index([targetUserId])
 }
 
 // ============================================================

@@ -167,6 +167,14 @@ export interface AppNotification {
   message: string;
   isRead: boolean;
   reportId?: string;
+  // Bildirimin konusu olan kullanici (or. onay bekleyen yeni kayit)
+  targetUserId?: string | null;
+  targetUser?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    status: UserStatus;
+  } | null;
   createdAt: string;
 }
 

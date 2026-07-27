@@ -4,10 +4,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { AppNotification } from '../types';
+import { UserApprovalModal } from './UserApprovalModal';
 
 export function NotificationBell() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  // Onay modalinda gosterilecek kullanici (bildirimdeki targetUserId)
+  const [approvalUserId, setApprovalUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -37,8 +40,23 @@ export function NotificationBell() {
       qc.invalidateQueries({ queryKey: ['notif-count'] });
       qc.invalidateQueries({ queryKey: ['notifications'] });
     }
+    // Hesap onayi bildirimi -> ilgili kullanicinin detay/onay modali
+    if (n.type === 'ACCOUNT_PENDING_APPROVAL' && n.targetUserId) {
+      setApprovalUserId(n.targetUserId);
+      setOpen(false);
+      return;
+    }
     if (n.reportId) navigate(`/reports/${n.reportId}`);
     setOpen(false);
+  }
+
+  // Onay bekleyen kayit sonuclandiysa bildirim "tamamlandi" olarak gosterilir
+  function isResolved(n: AppNotification) {
+    return (
+      n.type === 'ACCOUNT_PENDING_APPROVAL' &&
+      !!n.targetUser &&
+      n.targetUser.status !== 'PENDING'
+    );
   }
 
   return (
@@ -66,7 +84,17 @@ export function NotificationBell() {
                 className={`notif-item ${n.isRead ? '' : 'unread'}`}
                 onClick={() => onClick(n)}
               >
-                <div className="notif-title">{n.title}</div>
+                <div className="notif-title">
+                  {n.title}
+                  {isResolved(n) && (
+                    <span
+                      className="badge badge-success"
+                      style={{ marginLeft: 6 }}
+                    >
+                      {t('notifications.completed')}
+                    </span>
+                  )}
+                </div>
                 <div className="notif-msg">{n.message}</div>
                 <div className="notif-time">
                   {new Date(n.createdAt).toLocaleString()}
@@ -75,6 +103,17 @@ export function NotificationBell() {
             ))
           )}
         </div>
+      )}
+
+      {approvalUserId && (
+        <UserApprovalModal
+          userId={approvalUserId}
+          onClose={() => setApprovalUserId(null)}
+          onResolved={() => {
+            qc.invalidateQueries({ queryKey: ['notif-count'] });
+            qc.invalidateQueries({ queryKey: ['notifications'] });
+          }}
+        />
       )}
     </div>
   );

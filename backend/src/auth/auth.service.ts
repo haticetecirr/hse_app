@@ -200,9 +200,11 @@ export class AuthService {
     await this.prisma.notification.createMany({
       data: approvers.map((a) => ({
         userId: a.id,
-        type: 'GENERAL' as const,
-        title: 'Yeni hesap onayi bekliyor',
-        message: `${fullName} kayit oldu ve onayinizi bekliyor.`,
+        type: 'ACCOUNT_PENDING_APPROVAL' as const,
+        title: 'Yeni hesap onayı bekliyor',
+        message: `${fullName} kayıt oldu ve onayınızı bekliyor.`,
+        // Bildirime tiklandiginda dogru kullanici getirilsin
+        targetUserId: newUserId,
       })),
     });
   }

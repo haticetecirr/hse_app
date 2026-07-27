@@ -49,15 +49,18 @@ export class UsersService {
       where: { id },
       select: userSelect,
     });
-    if (!user) throw new NotFoundException('Kullanici bulunamadi.');
+    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
     return this.flatten(user);
   }
 
   async approve(id: string, dto: ApproveUserDto, approverId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('Kullanici bulunamadi.');
+    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
     if (user.status === 'VERIFIED') {
-      throw new BadRequestException('Kullanici zaten onayli.');
+      // Ayni hesap ikinci kez onaylanamaz
+      throw new BadRequestException(
+        'Bu kullanıcı hesabı zaten onaylanmış.',
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -88,19 +91,27 @@ export class UsersService {
     await this.notifications.create({
       userId: id,
       type: 'ACCOUNT_APPROVED',
-      title: 'Hesabiniz onaylandi',
+      title: 'Hesabınız onaylandı',
       message:
-        'Hesabiniz yonetici tarafindan onaylandi. Artik bildirim yapabilirsiniz.',
+        'Hesabınız yönetici tarafından onaylandı. Artık bildirim yapabilirsiniz.',
     });
+
+    // Onayculardaki "onay bekliyor" bildirimleri tamamlandi say
+    await this.notifications.resolveAccountApproval(id);
 
     return this.findOne(id);
   }
 
   async reject(id: string, dto: RejectUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('Kullanici bulunamadi.');
+    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
     if (user.isSuperAdmin) {
-      throw new BadRequestException('Super admin reddedilemez.');
+      throw new BadRequestException('Süper admin reddedilemez.');
+    }
+    if (user.status === 'REJECTED') {
+      throw new BadRequestException(
+        'Bu kullanıcı hesabı zaten reddedilmiş.',
+      );
     }
 
     await this.prisma.user.update({
@@ -111,21 +122,23 @@ export class UsersService {
     await this.notifications.create({
       userId: id,
       type: 'ACCOUNT_REJECTED',
-      title: 'Hesap kaydiniz reddedildi',
+      title: 'Hesap kaydınız reddedildi',
       message: dto.reason
-        ? `Kaydiniz reddedildi. Sebep: ${dto.reason}`
-        : 'Hesap kaydiniz yonetici tarafindan reddedildi.',
+        ? `Kaydınız reddedildi. Sebep: ${dto.reason}`
+        : 'Hesap kaydınız yönetici tarafından reddedildi.',
     });
+
+    await this.notifications.resolveAccountApproval(id);
 
     return { ok: true };
   }
 
   async updateAuthorization(id: string, dto: UpdateUserAuthorizationDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('Kullanici bulunamadi.');
+    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
     if (user.isSuperAdmin) {
       throw new BadRequestException(
-        'Super admin yetkileri degistirilemez.',
+        'Süper admin yetkileri değiştirilemez.',
       );
     }
 
@@ -154,8 +167,8 @@ export class UsersService {
     await this.notifications.create({
       userId: id,
       type: 'ROLE_ASSIGNED',
-      title: 'Yetkileriniz guncellendi',
-      message: 'Yonetici rol, rutbe veya birim atamanizi guncelledi.',
+      title: 'Yetkileriniz güncellendi',
+      message: 'Yönetici rol, rütbe veya birim atamanızı güncelledi.',
     });
 
     return this.findOne(id);
@@ -163,9 +176,9 @@ export class UsersService {
 
   async setStatus(id: string, status: 'SUSPENDED' | 'VERIFIED') {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('Kullanici bulunamadi.');
+    if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
     if (user.isSuperAdmin) {
-      throw new BadRequestException('Super admin durumu degistirilemez.');
+      throw new BadRequestException('Süper admin durumu değiştirilemez.');
     }
     await this.prisma.user.update({ where: { id }, data: { status } });
     return this.findOne(id);
