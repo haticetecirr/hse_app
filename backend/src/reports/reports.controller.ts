@@ -107,13 +107,29 @@ export class ReportsController {
     @CurrentUser() user: AuthUser,
     @Ip() ip: string,
   ) {
-    const r = await this.reports.updateStatus(id, dto, user);
+    // Servis, HTTP yanitini degistirmemek icin raporu ve onceki durumu
+    // ayri dondurur; istemciye yalnizca rapor gider.
+    const { report: r, previousStatus } = await this.reports.updateStatus(
+      id,
+      dto,
+      user,
+    );
+
+    const isClose = dto.status === 'CLOSED';
     await this.audit.log({
       actor: user,
-      action: 'REPORT_STATUS_CHANGE',
+      action: isClose ? 'REPORT_CLOSE' : 'REPORT_STATUS_CHANGE',
       entityType: 'Report',
       entityId: id,
-      summary: `${r.referenceNo} durumu -> ${dto.status}`,
+      summary: isClose
+        ? `${r.referenceNo} kapatıldı (${previousStatus} -> ${dto.status}, kapatma açıklaması girildi)`
+        : `${r.referenceNo} durumu ${previousStatus} -> ${dto.status}`,
+      // Aciklamanin kendisi degil, yalnizca girilmis oldugu bilgisi tutulur.
+      meta: {
+        previousStatus,
+        newStatus: dto.status,
+        closingNoteProvided: isClose,
+      },
       ip,
     });
     return r;

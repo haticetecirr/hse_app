@@ -286,6 +286,15 @@ export const en = {
       noReports: 'No reports yet.',
       attachments: 'Photos / Attachments',
       downloadPdf: 'Download PDF',
+      closingInfo: 'Closing Details',
+      closingNote: 'Closing Note',
+      closingNoteHint: 'A closing note is required, at least 10 characters.',
+      closingNotePlaceholder:
+        'Describe the measures taken and the reason for closing...',
+      closedAt: 'Closed At',
+      closedBy: 'Closed By',
+      statusUpdated: 'Report status updated.',
+      noStatusOptions: 'This report cannot change status.',
     },
     accidentForm: {
       title: 'Work Accident Report',

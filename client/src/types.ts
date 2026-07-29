@@ -147,6 +147,7 @@ export interface Report {
   department?: { id: string; name: string } | null;
   assignedTo?: { id: string; firstName: string; lastName: string } | null;
   closedBy?: { id: string; firstName: string; lastName: string } | null;
+  closedAt?: string | null;
   // Accident
   accidentType?: string;
   otherAccidentType?: string;
@@ -271,6 +272,21 @@ export const REPORT_STATUSES: ReportStatus[] = [
   'CLOSED',
   'REJECTED',
 ];
+
+// Yalnizca kullanici deneyimi icindir: mevcut duruma gore secilebilecek
+// sonraki durumlar. Asil guvenlik backend'dedir (backend/src/reports/
+// report-status.ts) ve bu liste onunla ayni tutulmalidir.
+// CLOSED ve REJECTED son durumlardir -> secenek gosterilmez.
+export const ALLOWED_STATUS_TRANSITIONS: Record<ReportStatus, ReportStatus[]> =
+  {
+    DRAFT: ['SUBMITTED'],
+    SUBMITTED: ['UNDER_REVIEW', 'INVESTIGATING', 'REJECTED'],
+    UNDER_REVIEW: ['INVESTIGATING', 'REJECTED'],
+    INVESTIGATING: ['ACTIONS_PENDING', 'CLOSED', 'REJECTED'],
+    ACTIONS_PENDING: ['INVESTIGATING', 'CLOSED'],
+    CLOSED: [],
+    REJECTED: [],
+  };
 
 // URL bir video mu? (uzantiya gore)
 export function isVideoUrl(url: string): boolean {

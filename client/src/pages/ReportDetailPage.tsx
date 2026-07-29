@@ -9,7 +9,7 @@ import {
   isVideoUrl,
   Report,
   AssignableUser,
-  REPORT_STATUSES,
+  ALLOWED_STATUS_TRANSITIONS,
 } from '../types';
 import { PrintableReport } from '../components/PrintableReport';
 
@@ -29,6 +29,7 @@ export function ReportDetailPage() {
   const { me } = useAuth();
   const qc = useQueryClient();
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
 
@@ -77,20 +78,49 @@ export function ReportDetailPage() {
       ))
     );
 
+  const canClose = hasPermission(me, 'REPORT_CLOSE');
+
+  // Mevcut duruma gore secilebilecek durumlar. CLOSED yalnizca kapatma
+  // yetkisi olan kullaniciya gosterilir. Backend kontrolunun yerine gecmez.
+  const statusOptions = (
+    r ? ALLOWED_STATUS_TRANSITIONS[r.status] ?? [] : []
+  ).filter((s) => s !== 'CLOSED' || canClose);
+
   const [newStatus, setNewStatus] = useState('');
+  const [closingNote, setClosingNote] = useState('');
+  const [statusBusy, setStatusBusy] = useState(false);
   const [assignee, setAssignee] = useState('');
   const [actionDesc, setActionDesc] = useState('');
   const [actionAssignee, setActionAssignee] = useState('');
   const [actionDue, setActionDue] = useState('');
 
+  const closingSelected = newStatus === 'CLOSED';
+  // Bosluklar sayilmaz; backend de trim sonrasi >= 10 karakter bekler.
+  const closingNoteValid = closingNote.trim().length >= 10;
+  const canSubmitStatus =
+    !!newStatus && !statusBusy && (!closingSelected || closingNoteValid);
+
   async function changeStatus() {
-    if (!newStatus) return;
+    if (!canSubmitStatus) return;
+    setStatusBusy(true);
     try {
-      await api.patch(`/reports/${id}/status`, { status: newStatus });
+      // CLOSED disindaki durumlarda closingNote gonderilmez.
+      await api.patch(`/reports/${id}/status`, {
+        status: newStatus,
+        ...(closingSelected ? { closingNote: closingNote.trim() } : {}),
+      });
       qc.invalidateQueries({ queryKey: ['report', id] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['stats'] });
       setNewStatus('');
+      setClosingNote('');
+      setError('');
+      setSuccess(t('reports.statusUpdated'));
     } catch (e) {
+      setSuccess('');
       setError(errorMessage(e));
+    } finally {
+      setStatusBusy(false);
     }
   }
 
@@ -187,6 +217,7 @@ export function ReportDetailPage() {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
       <div className="row">
         <div style={{ flex: 2, minWidth: 320 }}>
@@ -220,6 +251,34 @@ export function ReportDetailPage() {
               <div>{r.description}</div>
             </div>
           </div>
+
+          {/* Kapanis bilgileri. Eski kayitlarda alanlar bos olabilir;
+              eksik veri icin tire gosterilir, sayfa cokmez. */}
+          {r.status === 'CLOSED' && (
+            <div className="card">
+              <div className="card-title">{t('reports.closingInfo')}</div>
+              <Row
+                label={t('reports.closedAt')}
+                value={
+                  r.closedAt ? new Date(r.closedAt).toLocaleString() : '—'
+                }
+              />
+              <Row
+                label={t('reports.closedBy')}
+                value={
+                  r.closedBy
+                    ? `${r.closedBy.firstName} ${r.closedBy.lastName}`
+                    : '—'
+                }
+              />
+              {r.closingNote && (
+                <div style={{ padding: '10px 0' }}>
+                  <div className="muted">{t('reports.closingNote')}</div>
+                  <div>{r.closingNote}</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {r.type === 'ACCIDENT' && (
             <div className="card">
@@ -470,22 +529,52 @@ export function ReportDetailPage() {
               {canManage && (
                 <div className="field">
                   <label>{t('reports.status')}</label>
-                  <div className="flex gap-8">
-                    <select
-                      value={newStatus}
-                      onChange={(e) => setNewStatus(e.target.value)}
-                    >
-                      <option value="">—</option>
-                      {REPORT_STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {t(`reportStatus.${s}`)}
-                        </option>
-                      ))}
-                    </select>
-                    <button className="btn btn-sm" onClick={changeStatus}>
-                      {t('common.save')}
-                    </button>
-                  </div>
+                  {statusOptions.length === 0 ? (
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {t('reports.noStatusOptions')}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex gap-8">
+                        <select
+                          value={newStatus}
+                          onChange={(e) => setNewStatus(e.target.value)}
+                        >
+                          <option value="">—</option>
+                          {statusOptions.map((s) => (
+                            <option key={s} value={s}>
+                              {t(`reportStatus.${s}`)}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="btn btn-sm"
+                          onClick={changeStatus}
+                          disabled={!canSubmitStatus}
+                        >
+                          {t('common.save')}
+                        </button>
+                      </div>
+
+                      {/* Kapatma aciklamasi yalnizca CLOSED seciliyken */}
+                      {closingSelected && (
+                        <div className="mt-8">
+                          <label>{t('reports.closingNote')}</label>
+                          <textarea
+                            value={closingNote}
+                            onChange={(e) => setClosingNote(e.target.value)}
+                            placeholder={t('reports.closingNotePlaceholder')}
+                          />
+                          <div
+                            className="muted"
+                            style={{ fontSize: 11, marginTop: 4 }}
+                          >
+                            {t('reports.closingNoteHint')}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

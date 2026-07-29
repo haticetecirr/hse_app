@@ -15,6 +15,11 @@ import {
   CreateNearMissDto,
   UpdateStatusDto,
 } from './dto/report.dto';
+import {
+  assertCanTransition,
+  canTransition,
+  STATUS_LABELS_TR,
+} from './report-status';
 
 const reportInclude = {
   reporter: { select: { id: true, firstName: true, lastName: true } },
@@ -203,40 +208,88 @@ export class ReportsService {
   }
 
   async updateStatus(id: string, dto: UpdateStatusDto, user: AuthUser) {
-    const report = await this.prisma.report.findUnique({ where: { id } });
-    if (!report) throw new NotFoundException('Bildirim bulunamadı.');
-
+    // Yetki kontrolu DB'ye dokunmadan once yapilir -> yetkisiz kullanici 403 alir.
     if (
       dto.status === 'CLOSED' &&
       !user.isSuperAdmin &&
       !user.permissions.includes('REPORT_CLOSE')
     ) {
-      throw new ForbiddenException('Kapatma yetkiniz yok.');
+      throw new ForbiddenException('Bildirimi kapatma yetkiniz yok.');
     }
 
-    const updated = await this.prisma.report.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        closingNote:
-          dto.status === 'CLOSED' ? dto.closingNote : report.closingNote,
-        closedById: dto.status === 'CLOSED' ? user.id : report.closedById,
-        closedAt: dto.status === 'CLOSED' ? new Date() : report.closedAt,
+    // Okuma + dogrulama + yazma tek transaction icinde; boylece kontrol ile
+    // guncelleme arasinda durum degisemez.
+    const { report: updated, previousStatus } = await this.prisma.$transaction(
+      async (tx) => {
+        const report = await tx.report.findUnique({
+          where: { id },
+          include: { correctiveActions: { select: { status: true } } },
+        });
+        if (!report) throw new NotFoundException('Bildirim bulunamadı.');
+
+        const previousStatus = report.status;
+
+        if (previousStatus === dto.status) {
+          throw new BadRequestException(
+            `Bildirim zaten "${STATUS_LABELS_TR[previousStatus]}" durumunda.`,
+          );
+        }
+
+        // Merkezi gecis kurallari (bkz. report-status.ts)
+        assertCanTransition(previousStatus, dto.status);
+
+        // CLOSED disindaki gecislerde mevcut kapanis bilgileri korunur;
+        // gonderilen closingNote kapanis bilgisi olarak kaydedilmez.
+        let closingNote = report.closingNote;
+        let closedById = report.closedById;
+        let closedAt = report.closedAt;
+
+        if (dto.status === 'CLOSED') {
+          const note = (dto.closingNote ?? '').trim();
+          if (note.length < 10) {
+            throw new BadRequestException(
+              'Kapatma açıklaması zorunludur ve en az 10 karakter olmalıdır.',
+            );
+          }
+
+          // Bagli faaliyet varsa hepsi VERIFIED olmali (OPEN, IN_PROGRESS,
+          // COMPLETED ve OVERDUE kapatmayi engeller). Hic faaliyet yoksa serbest.
+          const pending = report.correctiveActions.filter(
+            (a) => a.status !== 'VERIFIED',
+          );
+          if (pending.length > 0) {
+            throw new BadRequestException(
+              'Bildirim kapatılamadı. Bağlı düzeltici faaliyetlerin tamamı doğrulanmalıdır.',
+            );
+          }
+
+          closingNote = note; // trimlenmis deger kaydedilir
+          closedById = user.id;
+          closedAt = new Date();
+        }
+
+        const result = await tx.report.update({
+          where: { id },
+          data: { status: dto.status, closingNote, closedById, closedAt },
+          include: reportInclude,
+        });
+
+        return { report: result, previousStatus };
       },
-      include: reportInclude,
-    });
+    );
 
     // Bildiren kisiye durum degisikligini haber ver
-    if (report.reporterId !== user.id) {
+    if (updated.reporterId !== user.id) {
       await this.notifications.create({
-        userId: report.reporterId,
+        userId: updated.reporterId,
         type: 'REPORT_STATUS_CHANGED',
         title: 'Bildirim durumu güncellendi',
-        message: `${report.referenceNo} numaralı bildiriminizin durumu: ${dto.status}`,
-        reportId: report.id,
+        message: `${updated.referenceNo} numaralı bildiriminizin durumu: ${dto.status}`,
+        reportId: updated.id,
       });
     }
-    return updated;
+
+    return { report: updated, previousStatus };
   }
 
   async assign(id: string, dto: AssignReportDto, user: AuthUser) {
@@ -250,12 +303,18 @@ export class ReportsService {
       throw new BadRequestException('Geçersiz atanan kullanıcı.');
     }
 
+    // Mevcut davranis korunur: SUBMITTED bir bildirim atandiginda otomatik
+    // olarak INVESTIGATING'e gecer. Gecis merkezi kurallara karsi da
+    // dogrulanir; kurala uymayan bir otomatik gecis uygulanmaz.
+    const autoInvestigating =
+      report.status === 'SUBMITTED' &&
+      canTransition(report.status, 'INVESTIGATING');
+
     const updated = await this.prisma.report.update({
       where: { id },
       data: {
         assignedToId: dto.assignedToId,
-        status:
-          report.status === 'SUBMITTED' ? 'INVESTIGATING' : report.status,
+        status: autoInvestigating ? 'INVESTIGATING' : report.status,
       },
       include: reportInclude,
     });
@@ -272,26 +331,52 @@ export class ReportsService {
   }
 
   async addAction(reportId: string, dto: CreateActionDto, user: AuthUser) {
-    const report = await this.prisma.report.findUnique({
-      where: { id: reportId },
-    });
-    if (!report) throw new NotFoundException('Bildirim bulunamadı.');
+    // Faaliyet olusturma + otomatik durum gecisi tek transaction icinde.
+    const { action, report } = await this.prisma.$transaction(async (tx) => {
+      const report = await tx.report.findUnique({ where: { id: reportId } });
+      if (!report) throw new NotFoundException('Bildirim bulunamadı.');
 
-    const action = await this.prisma.correctiveAction.create({
-      data: {
-        reportId,
-        description: dto.description,
-        assignedToId: dto.assignedToId,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-      },
-    });
+      // Son durumlara faaliyet eklenemez.
+      if (report.status === 'CLOSED' || report.status === 'REJECTED') {
+        throw new BadRequestException(
+          `"${STATUS_LABELS_TR[report.status]}" durumundaki bir bildirime düzeltici faaliyet eklenemez.`,
+        );
+      }
 
-    if (report.status === 'INVESTIGATING' || report.status === 'SUBMITTED') {
-      await this.prisma.report.update({
-        where: { id: reportId },
-        data: { status: 'ACTIONS_PENDING' },
+      // Hedef durum ACTIONS_PENDING. Zincirdeki her adim merkezi helper ile
+      // dogrulanir; DB'ye yalnizca son durum yazilir, ara durum birakilmaz.
+      let nextStatus: ReportStatus | null = null;
+      if (report.status !== 'ACTIONS_PENDING') {
+        if (canTransition(report.status, 'ACTIONS_PENDING')) {
+          // Tek adim: INVESTIGATING -> ACTIONS_PENDING
+          assertCanTransition(report.status, 'ACTIONS_PENDING');
+        } else {
+          // Iki adimli zincir: <mevcut> -> INVESTIGATING -> ACTIONS_PENDING
+          // (or. SUBMITTED). Ikisi de merkezi kurallara gore gecerli olmali.
+          assertCanTransition(report.status, 'INVESTIGATING');
+          assertCanTransition('INVESTIGATING', 'ACTIONS_PENDING');
+        }
+        nextStatus = 'ACTIONS_PENDING';
+      }
+
+      const action = await tx.correctiveAction.create({
+        data: {
+          reportId,
+          description: dto.description,
+          assignedToId: dto.assignedToId,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        },
       });
-    }
+
+      if (nextStatus) {
+        await tx.report.update({
+          where: { id: reportId },
+          data: { status: nextStatus },
+        });
+      }
+
+      return { action, report };
+    });
 
     if (dto.assignedToId) {
       await this.notifications.create({
