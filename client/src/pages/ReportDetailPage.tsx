@@ -12,6 +12,32 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
 } from '../types';
 import { PrintableReport } from '../components/PrintableReport';
+import {
+  AuthenticatedImage,
+  AuthenticatedVideo,
+  whenProtectedImagesSettled,
+} from '../components/AuthenticatedMedia';
+
+// PDF'ten once <img> elemanlarinin cozulmesini bekler. Hatali gorseller de
+// "cozuldu" sayilir; ayrica sert bir zaman asimi vardir.
+function waitForImagesDecoded(root: HTMLElement | null, timeoutMs: number) {
+  if (!root) return Promise.resolve();
+  const imgs = Array.from(root.querySelectorAll('img'));
+  const pending = imgs
+    .filter((img) => !(img.complete && img.naturalWidth > 0))
+    .map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          img.addEventListener('load', () => resolve(), { once: true });
+          img.addEventListener('error', () => resolve(), { once: true });
+        }),
+    );
+  if (pending.length === 0) return Promise.resolve();
+  return Promise.race([
+    Promise.all(pending).then(() => undefined),
+    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+  ]);
+}
 
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value === undefined || value === null || value === '') return null;
@@ -161,6 +187,12 @@ export function ReportDetailPage() {
     if (!printRef.current || !r) return;
     setPdfBusy(true);
     try {
+      // Korunan resimler artik Axios ile asenkron cekiliyor. PDF'te bos kare
+      // olmamasi icin once indirmelerin bitmesi beklenir; zaman asimi ve
+      // hatali gorseller bekleyisi sonsuza uzatmaz.
+      await whenProtectedImagesSettled(15000);
+      await waitForImagesDecoded(printRef.current, 10000);
+
       const html2pdf = (await import('html2pdf.js')).default;
       await html2pdf()
         .set({
@@ -397,32 +429,32 @@ export function ReportDetailPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {r.attachments.map((url) =>
                   isVideoUrl(url) ? (
-                    <video
+                    <AuthenticatedVideo
                       key={url}
-                      src={url}
+                      url={url}
                       controls
                       style={{
                         width: 260,
                         maxHeight: 200,
+                        height: 200,
                         borderRadius: 8,
                         border: '1px solid var(--border)',
                         background: '#000',
                       }}
                     />
                   ) : (
-                    <a key={url} href={url} target="_blank" rel="noreferrer">
-                      <img
-                        src={url}
-                        alt=""
-                        style={{
-                          width: 140,
-                          height: 110,
-                          objectFit: 'cover',
-                          borderRadius: 8,
-                          border: '1px solid var(--border)',
-                        }}
-                      />
-                    </a>
+                    <AuthenticatedImage
+                      key={url}
+                      url={url}
+                      openOnClick
+                      style={{
+                        width: 140,
+                        height: 110,
+                        objectFit: 'cover',
+                        borderRadius: 8,
+                        border: '1px solid var(--border)',
+                      }}
+                    />
                   ),
                 )}
               </div>

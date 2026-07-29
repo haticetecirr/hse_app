@@ -20,6 +20,7 @@ import {
   canTransition,
   STATUS_LABELS_TR,
 } from './report-status';
+import { canUserViewReport } from './report-access';
 
 const reportInclude = {
   reporter: { select: { id: true, firstName: true, lastName: true } },
@@ -192,16 +193,7 @@ export class ReportsService {
     });
     if (!report) throw new NotFoundException('Bildirim bulunamadı.');
 
-    const canViewAll =
-      user.isSuperAdmin || user.permissions.includes('REPORT_VIEW_ALL');
-    const isOwn = report.reporterId === user.id;
-    const isAssigned = report.assignedToId === user.id;
-    const inDept =
-      user.permissions.includes('REPORT_VIEW_DEPARTMENT') &&
-      report.departmentId &&
-      user.departmentIds.includes(report.departmentId);
-
-    if (!canViewAll && !isOwn && !isAssigned && !inDept) {
+    if (!canUserViewReport(report, user)) {
       throw new ForbiddenException('Bu bildirimi görme yetkiniz yok.');
     }
     return report;

@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Report, isVideoUrl } from '../types';
+import { AuthenticatedImage } from './AuthenticatedMedia';
 
 // PDF cikti icin sade, A4 uyumlu duzen (html2pdf bu elemani yakalar).
 export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
@@ -286,9 +287,10 @@ export const PrintableReport = forwardRef<HTMLDivElement, { report: Report }>(
                     pageBreakInside: 'avoid',
                   }}
                 >
-                  <img
-                    src={url}
-                    crossOrigin="anonymous"
+                  {/* Korunan uc icin blob object URL kullanilir; blob ayni
+                      kokenli oldugu icin crossOrigin gerekmez. */}
+                  <AuthenticatedImage
+                    url={url}
                     style={{
                       maxWidth: '100%',
                       maxHeight: 420,

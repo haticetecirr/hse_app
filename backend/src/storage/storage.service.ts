@@ -64,4 +64,10 @@ export class StorageService implements OnModuleInit {
   async getPartialStream(key: string, offset: number, length: number) {
     return this.client.getPartialObject(this.bucket, key, offset, length);
   }
+
+  // Kisa sureli imzali GET URL'i. Bucket private kalir; erisim yalnizca
+  // imza gecerli oldugu surece mumkundur. URL hicbir yerde saklanmaz.
+  async getPresignedUrl(key: string, expirySeconds: number): Promise<string> {
+    return this.client.presignedGetObject(this.bucket, key, expirySeconds);
+  }
 }

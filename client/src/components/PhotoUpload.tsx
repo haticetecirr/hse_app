@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, errorMessage } from '../api/client';
 import { isVideoUrl } from '../types';
+import { AuthenticatedImage, AuthenticatedVideo } from './AuthenticatedMedia';
 
 interface Props {
   value: string[];
@@ -15,17 +16,44 @@ export function PhotoUpload({ value, onChange }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // Bu oturumda secilen dosyalarin YEREL onizlemeleri: sunucu URL'i -> object URL.
+  // Yeni yuklenen dosya henuz bir bildirime bagli olmadigi icin korunan
+  // /api/files ucu 404 doner; bu yuzden onizleme yerel dosyadan uretilir.
+  // Sunucu URL'i (value) forma gonderilmek uzere degistirilmeden korunur.
+  const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
+  const previewsRef = useRef(localPreviews);
+  previewsRef.current = localPreviews;
+
+  // Unmount'ta kalan tum object URL'ler serbest birakilir.
+  useEffect(
+    () => () => {
+      Object.values(previewsRef.current).forEach((u) => URL.revokeObjectURL(u));
+    },
+    [],
+  );
+
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setBusy(true);
     setError('');
     try {
+      const selected = Array.from(files);
       const fd = new FormData();
-      Array.from(files).forEach((f) => fd.append('files', f));
+      selected.forEach((f) => fd.append('files', f));
       const { data } = await api.post<{ urls: string[] }>('/uploads', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      // Sunucu URL'leri dosyalarla ayni sirada doner; her birini kendi
+      // yerel object URL'i ile eslestir.
+      const created: Record<string, string> = {};
+      data.urls.forEach((serverUrl, i) => {
+        const file = selected[i];
+        if (file) created[serverUrl] = URL.createObjectURL(file);
+      });
+      setLocalPreviews((prev) => ({ ...prev, ...created }));
+
       onChange([...value, ...data.urls]);
     } catch (err) {
       setError(errorMessage(err));
@@ -36,6 +64,15 @@ export function PhotoUpload({ value, onChange }: Props) {
   }
 
   function remove(url: string) {
+    const objectUrl = previewsRef.current[url];
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      setLocalPreviews((prev) => {
+        const next = { ...prev };
+        delete next[url];
+        return next;
+      });
+    }
     onChange(value.filter((u) => u !== url));
   }
 
@@ -89,16 +126,32 @@ export function PhotoUpload({ value, onChange }: Props) {
                 border: '1px solid var(--border)',
               }}
             >
-              {isVideoUrl(url) ? (
-                <video
-                  src={url}
+              {/* Bu oturumda secilen dosya -> yerel object URL ile onizleme.
+                  Daha once kaydedilmis ek -> korunan uc uzerinden gosterim. */}
+              {localPreviews[url] ? (
+                isVideoUrl(url) ? (
+                  <video
+                    src={localPreviews[url]}
+                    controls
+                    muted
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <img
+                    src={localPreviews[url]}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )
+              ) : isVideoUrl(url) ? (
+                <AuthenticatedVideo
+                  url={url}
                   muted
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <img
-                  src={url}
-                  alt=""
+                <AuthenticatedImage
+                  url={url}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               )}
