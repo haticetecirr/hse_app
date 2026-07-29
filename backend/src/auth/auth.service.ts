@@ -51,12 +51,12 @@ export class AuthService {
       action: 'ACCOUNT_REGISTER',
       entityType: 'User',
       entityId: user.id,
-      summary: `Yeni hesap kaydi: ${user.firstName} ${user.lastName} (${user.email})`,
+      summary: `Yeni hesap kaydı: ${user.firstName} ${user.lastName} (${user.email})`,
     });
 
     return {
       message:
-        'Kaydiniz alindi. Hesabiniz admin onayindan sonra aktiflesecektir.',
+        'Kaydınız alındı. Hesabınız admin onayından sonra aktifleşecektir.',
       status: user.status,
     };
   }
@@ -65,16 +65,16 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
-    if (!user) throw new UnauthorizedException('E-posta veya sifre hatali.');
+    if (!user) throw new UnauthorizedException('E-posta veya şifre hatalı.');
 
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('E-posta veya sifre hatali.');
+    if (!ok) throw new UnauthorizedException('E-posta veya şifre hatalı.');
 
     if (user.status === 'SUSPENDED') {
-      throw new UnauthorizedException('Hesabiniz askiya alinmis.');
+      throw new UnauthorizedException('Hesabınız askıya alınmış.');
     }
     if (user.status === 'REJECTED') {
-      throw new UnauthorizedException('Hesap kaydiniz reddedilmis.');
+      throw new UnauthorizedException('Hesap kaydınız reddedilmiş.');
     }
 
     const token = await this.jwt.signAsync({ sub: user.id });
@@ -84,7 +84,7 @@ export class AuthService {
       action: 'LOGIN',
       entityType: 'User',
       entityId: user.id,
-      summary: `Giris yapildi: ${user.email}`,
+      summary: `Giriş yapıldı: ${user.email}`,
     });
 
     return {
@@ -150,7 +150,7 @@ export class AuthService {
       action: 'PROFILE_UPDATE',
       entityType: 'User',
       entityId: userId,
-      summary: `Profil guncellendi: ${dto.firstName} ${dto.lastName}`,
+      summary: `Profil güncellendi: ${dto.firstName} ${dto.lastName}`,
     });
 
     return this.me(userId);
@@ -163,7 +163,7 @@ export class AuthService {
 
     const ok = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!ok) {
-      throw new UnauthorizedException('Mevcut sifre hatali.');
+      throw new UnauthorizedException('Mevcut şifre hatalı.');
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
@@ -177,10 +177,10 @@ export class AuthService {
       action: 'PASSWORD_CHANGE',
       entityType: 'User',
       entityId: userId,
-      summary: `Sifre degistirildi: ${user.email}`,
+      summary: `Şifre değiştirildi: ${user.email}`,
     });
 
-    return { message: 'Sifreniz guncellendi.' };
+    return { message: 'Şifreniz güncellendi.' };
   }
 
   private async notifyApprovers(newUserId: string, fullName: string) {

@@ -68,7 +68,7 @@ export class CreateAccidentDto {
   location: string;
 
   @IsString()
-  @MinLength(10, { message: 'Aciklama en az 10 karakter olmali.' })
+  @MinLength(10, { message: 'Açıklama en az 10 karakter olmalı.' })
   description: string;
 
   @IsOptional()
@@ -126,7 +126,7 @@ export class CreateNearMissDto {
   location: string;
 
   @IsString()
-  @MinLength(10, { message: 'Aciklama en az 10 karakter olmali.' })
+  @MinLength(10, { message: 'Açıklama en az 10 karakter olmalı.' })
   description: string;
 
   @IsOptional()

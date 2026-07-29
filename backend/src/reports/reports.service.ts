@@ -101,7 +101,7 @@ export class ReportsService {
       include: reportInclude,
     });
 
-    await this.notifyNewReport(report.id, referenceNo, 'Is kazasi');
+    await this.notifyNewReport(report.id, referenceNo, 'İş kazası');
     return report;
   }
 
@@ -185,7 +185,7 @@ export class ReportsService {
       where: { id },
       include: reportInclude,
     });
-    if (!report) throw new NotFoundException('Bildirim bulunamadi.');
+    if (!report) throw new NotFoundException('Bildirim bulunamadı.');
 
     const canViewAll =
       user.isSuperAdmin || user.permissions.includes('REPORT_VIEW_ALL');
@@ -197,14 +197,14 @@ export class ReportsService {
       user.departmentIds.includes(report.departmentId);
 
     if (!canViewAll && !isOwn && !isAssigned && !inDept) {
-      throw new ForbiddenException('Bu bildirimi gorme yetkiniz yok.');
+      throw new ForbiddenException('Bu bildirimi görme yetkiniz yok.');
     }
     return report;
   }
 
   async updateStatus(id: string, dto: UpdateStatusDto, user: AuthUser) {
     const report = await this.prisma.report.findUnique({ where: { id } });
-    if (!report) throw new NotFoundException('Bildirim bulunamadi.');
+    if (!report) throw new NotFoundException('Bildirim bulunamadı.');
 
     if (
       dto.status === 'CLOSED' &&
@@ -231,8 +231,8 @@ export class ReportsService {
       await this.notifications.create({
         userId: report.reporterId,
         type: 'REPORT_STATUS_CHANGED',
-        title: 'Bildirim durumu guncellendi',
-        message: `${report.referenceNo} numarali bildiriminizin durumu: ${dto.status}`,
+        title: 'Bildirim durumu güncellendi',
+        message: `${report.referenceNo} numaralı bildiriminizin durumu: ${dto.status}`,
         reportId: report.id,
       });
     }
@@ -241,13 +241,13 @@ export class ReportsService {
 
   async assign(id: string, dto: AssignReportDto, user: AuthUser) {
     const report = await this.prisma.report.findUnique({ where: { id } });
-    if (!report) throw new NotFoundException('Bildirim bulunamadi.');
+    if (!report) throw new NotFoundException('Bildirim bulunamadı.');
 
     const assignee = await this.prisma.user.findUnique({
       where: { id: dto.assignedToId },
     });
     if (!assignee || assignee.status !== 'VERIFIED') {
-      throw new BadRequestException('Gecersiz atanan kullanici.');
+      throw new BadRequestException('Geçersiz atanan kullanıcı.');
     }
 
     const updated = await this.prisma.report.update({
@@ -263,8 +263,8 @@ export class ReportsService {
     await this.notifications.create({
       userId: dto.assignedToId,
       type: 'REPORT_ASSIGNED',
-      title: 'Size bir bildirim atandi',
-      message: `${report.referenceNo} numarali bildirim sorusturma icin size atandi.`,
+      title: 'Size bir bildirim atandı',
+      message: `${report.referenceNo} numaralı bildirim soruşturma için size atandı.`,
       reportId: report.id,
       senderId: user.id,
     });
@@ -275,7 +275,7 @@ export class ReportsService {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
     });
-    if (!report) throw new NotFoundException('Bildirim bulunamadi.');
+    if (!report) throw new NotFoundException('Bildirim bulunamadı.');
 
     const action = await this.prisma.correctiveAction.create({
       data: {
@@ -297,7 +297,7 @@ export class ReportsService {
       await this.notifications.create({
         userId: dto.assignedToId,
         type: 'ACTION_ASSIGNED',
-        title: 'Size bir faaliyet atandi',
+        title: 'Size bir faaliyet atandı',
         message: `${report.referenceNo}: ${dto.description}`,
         reportId,
         senderId: user.id,
@@ -313,7 +313,7 @@ export class ReportsService {
     const action = await this.prisma.correctiveAction.findUnique({
       where: { id: actionId },
     });
-    if (!action) throw new NotFoundException('Faaliyet bulunamadi.');
+    if (!action) throw new NotFoundException('Faaliyet bulunamadı.');
     return this.prisma.correctiveAction.update({
       where: { id: actionId },
       data: {
@@ -372,7 +372,7 @@ export class ReportsService {
     await this.notifications.notifyByPermission('REPORT_VIEW_ALL', {
       type: 'REPORT_SUBMITTED',
       title: `Yeni ${typeLabel} bildirimi`,
-      message: `${referenceNo} numarali yeni bir ${typeLabel.toLowerCase()} bildirimi olusturuldu.`,
+      message: `${referenceNo} numaralı yeni bir ${typeLabel.toLocaleLowerCase('tr')} bildirimi oluşturuldu.`,
       reportId,
     });
   }

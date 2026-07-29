@@ -93,7 +93,7 @@ export class RolesController {
       action: 'ROLE_CREATE',
       entityType: 'Role',
       entityId: role.id,
-      summary: `Rol olusturuldu: ${role.name} (${dto.permissions.length} izin)`,
+      summary: `Rol oluşturuldu: ${role.name} (${dto.permissions.length} izin)`,
       meta: { permissions: dto.permissions },
       ip,
     });
@@ -109,14 +109,14 @@ export class RolesController {
     @Ip() ip: string,
   ) {
     const role = await this.prisma.role.findUnique({ where: { id } });
-    if (!role) throw new NotFoundException('Rol bulunamadi.');
+    if (!role) throw new NotFoundException('Rol bulunamadı.');
     const updated = await this.prisma.role.update({ where: { id }, data: dto });
     await this.audit.log({
       actor: user,
       action: 'ROLE_UPDATE',
       entityType: 'Role',
       entityId: id,
-      summary: `Rol guncellendi: ${updated.name}`,
+      summary: `Rol güncellendi: ${updated.name}`,
       meta: dto as any,
       ip,
     });
@@ -131,7 +131,7 @@ export class RolesController {
     @Ip() ip: string,
   ) {
     const role = await this.prisma.role.findUnique({ where: { id } });
-    if (!role) throw new NotFoundException('Rol bulunamadi.');
+    if (!role) throw new NotFoundException('Rol bulunamadı.');
     if (role.isSystem) {
       throw new BadRequestException('Sistem rolleri silinemez.');
     }

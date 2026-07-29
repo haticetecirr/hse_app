@@ -24,7 +24,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   handleRequest(err: any, user: any) {
     if (err || !user) {
-      throw err || new UnauthorizedException('Gecersiz veya eksik oturum.');
+      throw err || new UnauthorizedException('Geçersiz veya eksik oturum.');
     }
     return user;
   }

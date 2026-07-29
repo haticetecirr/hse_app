@@ -7,11 +7,11 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @IsEmail({}, { message: 'Gecerli bir e-posta giriniz.' })
+  @IsEmail({}, { message: 'Geçerli bir e-posta giriniz.' })
   email: string;
 
   @IsString()
-  @MinLength(6, { message: 'Sifre en az 6 karakter olmali.' })
+  @MinLength(6, { message: 'Şifre en az 6 karakter olmalı.' })
   password: string;
 
   @IsString()
@@ -28,11 +28,11 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Gecerli bir e-posta giriniz.' })
+  @IsEmail({}, { message: 'Geçerli bir e-posta giriniz.' })
   email: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Sifre zorunlu.' })
+  @IsNotEmpty({ message: 'Şifre zorunlu.' })
   password: string;
 }
 
@@ -52,10 +52,10 @@ export class UpdateProfileDto {
 
 export class ChangePasswordDto {
   @IsString()
-  @IsNotEmpty({ message: 'Mevcut sifre zorunlu.' })
+  @IsNotEmpty({ message: 'Mevcut şifre zorunlu.' })
   currentPassword: string;
 
   @IsString()
-  @MinLength(6, { message: 'Yeni sifre en az 6 karakter olmali.' })
+  @MinLength(6, { message: 'Yeni şifre en az 6 karakter olmalı.' })
   newPassword: string;
 }

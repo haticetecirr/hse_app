@@ -54,7 +54,7 @@ export class UsersController {
       action: 'USER_APPROVE',
       entityType: 'User',
       entityId: id,
-      summary: `${result.firstName} ${result.lastName} onaylandi (rol: ${result.role?.name || '-'}, rutbe: ${result.rank || '-'})`,
+      summary: `${result.firstName} ${result.lastName} onaylandı (rol: ${result.role?.name || '-'}, rütbe: ${result.rank || '-'})`,
       ip,
     });
     return result;
@@ -74,7 +74,7 @@ export class UsersController {
       action: 'USER_REJECT',
       entityType: 'User',
       entityId: id,
-      summary: `Kullanici kaydi reddedildi${dto.reason ? ' (' + dto.reason + ')' : ''}`,
+      summary: `Kullanıcı kaydı reddedildi${dto.reason ? ' (' + dto.reason + ')' : ''}`,
       ip,
     });
     return result;
@@ -94,7 +94,7 @@ export class UsersController {
       action: 'USER_AUTHORIZATION_UPDATE',
       entityType: 'User',
       entityId: id,
-      summary: `${result.firstName} ${result.lastName} yetkileri guncellendi (rol: ${result.role?.name || '-'}, rutbe: ${result.rank || '-'})`,
+      summary: `${result.firstName} ${result.lastName} yetkileri güncellendi (rol: ${result.role?.name || '-'}, rütbe: ${result.rank || '-'})`,
       meta: dto as any,
       ip,
     });
@@ -114,7 +114,7 @@ export class UsersController {
       action: 'USER_SUSPEND',
       entityType: 'User',
       entityId: id,
-      summary: `${result.firstName} ${result.lastName} askiya alindi`,
+      summary: `${result.firstName} ${result.lastName} askıya alındı`,
       ip,
     });
     return result;

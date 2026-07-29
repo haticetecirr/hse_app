@@ -24,7 +24,7 @@ class DepartmentDto {
 
   @IsOptional()
   @IsString()
-  @Length(3, 3, { message: 'Birim kodu 3 karakter olmali.' })
+  @Length(3, 3, { message: 'Birim kodu 3 karakter olmalı.' })
   code?: string;
 
   @IsOptional()
@@ -61,7 +61,7 @@ export class DepartmentsController {
       action: 'DEPARTMENT_CREATE',
       entityType: 'Department',
       entityId: dep.id,
-      summary: `Birim olusturuldu: ${dep.name}`,
+      summary: `Birim oluşturuldu: ${dep.name}`,
       ip,
     });
     return dep;
@@ -71,7 +71,7 @@ export class DepartmentsController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: DepartmentDto) {
     const dep = await this.prisma.department.findUnique({ where: { id } });
-    if (!dep) throw new NotFoundException('Birim bulunamadi.');
+    if (!dep) throw new NotFoundException('Birim bulunamadı.');
     return this.prisma.department.update({ where: { id }, data: dto });
   }
 
@@ -83,7 +83,7 @@ export class DepartmentsController {
     @Ip() ip: string,
   ) {
     const dep = await this.prisma.department.findUnique({ where: { id } });
-    if (!dep) throw new NotFoundException('Birim bulunamadi.');
+    if (!dep) throw new NotFoundException('Birim bulunamadı.');
     await this.prisma.department.delete({ where: { id } });
     await this.audit.log({
       actor: user,

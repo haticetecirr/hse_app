@@ -131,7 +131,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </div>
               <div className="muted" style={{ fontSize: 11 }}>
                 {me?.isSuperAdmin
-                  ? 'Super Admin'
+                  ? 'Süper Admin'
                   : me?.role?.name || t('admin.noRole')}
               </div>
             </div>

@@ -33,13 +33,13 @@ export class PermissionsGuard implements CanActivate {
     // Yalnizca onaylanmis kullanicilar yetki kullanabilir
     if (user.status !== 'VERIFIED') {
       throw new ForbiddenException(
-        'Hesabiniz henuz onaylanmadi. Lutfen admin onayini bekleyin.',
+        'Hesabınız henüz onaylanmadı. Lütfen admin onayını bekleyin.',
       );
     }
 
     const has = required.some((p) => user.permissions.includes(p));
     if (!has) {
-      throw new ForbiddenException('Bu islem icin yetkiniz bulunmuyor.');
+      throw new ForbiddenException('Bu işlem için yetkiniz bulunmuyor.');
     }
     return true;
   }

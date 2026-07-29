@@ -49,7 +49,7 @@ export class ReportsController {
       action: 'REPORT_CREATE',
       entityType: 'Report',
       entityId: r.id,
-      summary: `Is kazasi bildirimi olusturuldu: ${r.referenceNo}`,
+      summary: `İş kazası bildirimi oluşturuldu: ${r.referenceNo}`,
       ip,
     });
     return r;
@@ -68,7 +68,7 @@ export class ReportsController {
       action: 'REPORT_CREATE',
       entityType: 'Report',
       entityId: r.id,
-      summary: `Ramak kala bildirimi olusturuldu: ${r.referenceNo} (risk: ${r.riskLevel})`,
+      summary: `Ramak kala bildirimi oluşturuldu: ${r.referenceNo} (risk: ${r.riskLevel})`,
       ip,
     });
     return r;
@@ -133,7 +133,7 @@ export class ReportsController {
       action: 'REPORT_ASSIGN',
       entityType: 'Report',
       entityId: id,
-      summary: `${r.referenceNo} bildirimi ${r.assignedTo?.firstName} ${r.assignedTo?.lastName} kisisine atandi`,
+      summary: `${r.referenceNo} bildirimi ${r.assignedTo?.firstName} ${r.assignedTo?.lastName} kişisine atandı`,
       ip,
     });
     return r;
@@ -153,7 +153,7 @@ export class ReportsController {
       action: 'ACTION_CREATE',
       entityType: 'CorrectiveAction',
       entityId: a.id,
-      summary: `Duzeltici faaliyet eklendi: ${dto.description}`,
+      summary: `Düzeltici faaliyet eklendi: ${dto.description}`,
       ip,
     });
     return a;

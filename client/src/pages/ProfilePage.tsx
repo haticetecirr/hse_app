@@ -109,7 +109,7 @@ export function ProfilePage() {
               label={t('admin.role')}
               value={
                 me.isSuperAdmin
-                  ? 'Super Admin'
+                  ? 'Süper Admin'
                   : me.role?.name || t('admin.noRole')
               }
             />

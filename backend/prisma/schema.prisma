@@ -73,14 +73,14 @@ model Role {
 }
 
 model Department {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String?  @unique
+  id          String           @id @default(cuid())
+  name        String           @unique
+  code        String?          @unique
   description String?
   members     UserDepartment[]
   reports     Report[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model User {
@@ -100,20 +100,20 @@ model User {
   departments UserDepartment[]
 
   // Denetim
-  verifiedAt   DateTime?
-  verifiedById String?
-  verifiedBy   User?     @relation("UserVerifier", fields: [verifiedById], references: [id])
-  verifiedUsers User[]   @relation("UserVerifier")
+  verifiedAt    DateTime?
+  verifiedById  String?
+  verifiedBy    User?     @relation("UserVerifier", fields: [verifiedById], references: [id])
+  verifiedUsers User[]    @relation("UserVerifier")
 
   // Iliskiler
-  reports            Report[]       @relation("Reporter")
-  assignedReports    Report[]       @relation("Assignee")
-  closedReports      Report[]       @relation("Closer")
-  assignedActions    CorrectiveAction[]
-  notifications      Notification[]
-  sentNotifications  Notification[] @relation("NotificationSender")
-  targetedNotifications Notification[] @relation("NotificationTarget")
-  auditLogs          AuditLog[]     @relation("AuditActor")
+  reports               Report[]           @relation("Reporter")
+  assignedReports       Report[]           @relation("Assignee")
+  closedReports         Report[]           @relation("Closer")
+  assignedActions       CorrectiveAction[]
+  notifications         Notification[]
+  sentNotifications     Notification[]     @relation("NotificationSender")
+  targetedNotifications Notification[]     @relation("NotificationTarget")
+  auditLogs             AuditLog[]         @relation("AuditActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -243,12 +243,12 @@ model Report {
   // --- IS KAZASI'na ozel ---
   accidentType      AccidentType?
   otherAccidentType String? // accidentType=OTHER ise serbest metin
-  outcomeSeverity OutcomeSeverity?
-  isInjured       Boolean          @default(false)
-  injuredName     String?
-  injuredType     PersonType?
-  otherInjuredType String? // injuredType=OTHER ise serbest metin
-  bodyInjuries    BodyInjury[]
+  outcomeSeverity   OutcomeSeverity?
+  isInjured         Boolean          @default(false)
+  injuredName       String?
+  injuredType       PersonType?
+  otherInjuredType  String? // injuredType=OTHER ise serbest metin
+  bodyInjuries      BodyInjury[]
 
   // --- RAMAK KALA'ya ozel ---
   nearMissCategory NearMissCategory?
@@ -263,9 +263,9 @@ model Report {
 
   // Is akisi / atama
   assignedToId String?
-  assignedTo   User?   @relation("Assignee", fields: [assignedToId], references: [id])
+  assignedTo   User?     @relation("Assignee", fields: [assignedToId], references: [id])
   closedById   String?
-  closedBy     User?   @relation("Closer", fields: [closedById], references: [id])
+  closedBy     User?     @relation("Closer", fields: [closedById], references: [id])
   closedAt     DateTime?
   closingNote  String?
 
@@ -346,17 +346,17 @@ enum InjurySeverity {
 }
 
 model BodyInjury {
-  id       String         @id @default(cuid())
-  reportId String
-  report   Report         @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  bodyPart BodyPart
-  side     BodySide       @default(CENTER)
-  view     BodyView       @default(FRONT)
-  type     InjuryType
+  id        String         @id @default(cuid())
+  reportId  String
+  report    Report         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  bodyPart  BodyPart
+  side      BodySide       @default(CENTER)
+  view      BodyView       @default(FRONT)
+  type      InjuryType
   otherType String? // type=OTHER ise serbest metin
-  severity InjurySeverity @default(MINOR)
-  note     String?
-  createdAt DateTime      @default(now())
+  severity  InjurySeverity @default(MINOR)
+  note      String?
+  createdAt DateTime       @default(now())
 }
 
 // Duzeltici / Onleyici Faaliyet (CAPA)
@@ -400,21 +400,21 @@ enum NotificationType {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String // Alici
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  senderId  String? // Gonderen (manuel duyurularda)
-  sender    User?            @relation("NotificationSender", fields: [senderId], references: [id])
-  type      NotificationType
-  title     String
-  message   String
-  reportId  String?
-  report    Report?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  id           String           @id @default(cuid())
+  userId       String // Alici
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId     String? // Gonderen (manuel duyurularda)
+  sender       User?            @relation("NotificationSender", fields: [senderId], references: [id])
+  type         NotificationType
+  title        String
+  message      String
+  reportId     String?
+  report       Report?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
   // Bildirimin konusu olan kullanici (or. onay bekleyen yeni kayit)
   targetUserId String?
-  targetUser   User?         @relation("NotificationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  targetUser   User?            @relation("NotificationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  isRead       Boolean          @default(false)
+  createdAt    DateTime         @default(now())
 
   @@index([userId, isRead])
   @@index([targetUserId])

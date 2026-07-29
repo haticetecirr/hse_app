@@ -25,7 +25,7 @@ export class UploadsController {
         if (/^(image|video)\//.test(file.mimetype)) cb(null, true);
         else
           cb(
-            new BadRequestException('Sadece resim veya video yuklenebilir.'),
+            new BadRequestException('Sadece resim veya video yüklenebilir.'),
             false,
           );
       },
@@ -33,7 +33,7 @@ export class UploadsController {
   )
   async upload(@UploadedFiles() files: Array<Express.Multer.File>) {
     if (!files || files.length === 0) {
-      throw new BadRequestException('Dosya bulunamadi.');
+      throw new BadRequestException('Dosya bulunamadı.');
     }
     const urls: string[] = [];
     for (const f of files) {

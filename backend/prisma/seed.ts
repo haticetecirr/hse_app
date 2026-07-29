@@ -3,15 +3,19 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Varsayilan sistem rolleri ve izinleri
+// Varsayilan sistem rolleri ve izinleri.
+// legacyName: Turkce karakter duzeltmesi oncesindeki ad. Ayni kaydin
+// yeniden olusturulmamasi icin once bu adla aranir (bkz. upsertRole).
 const SYSTEM_ROLES: {
   name: string;
+  legacyName?: string;
   description: string;
   permissions: Permission[];
 }[] = [
   {
-    name: 'Calisan',
-    description: 'Temel bildirim yapabilen calisan.',
+    name: 'Çalışan',
+    legacyName: 'Calisan',
+    description: 'Temel bildirim yapabilen çalışan.',
     permissions: [
       'REPORT_CREATE_ACCIDENT',
       'REPORT_CREATE_NEARMISS',
@@ -20,7 +24,7 @@ const SYSTEM_ROLES: {
   },
   {
     name: 'Birim Sorumlusu',
-    description: 'Kendi biriminin bildirimlerini yoneten sorumlu.',
+    description: 'Kendi biriminin bildirimlerini yöneten sorumlu.',
     permissions: [
       'REPORT_CREATE_ACCIDENT',
       'REPORT_CREATE_NEARMISS',
@@ -32,8 +36,9 @@ const SYSTEM_ROLES: {
     ],
   },
   {
-    name: 'ISG Uzmani',
-    description: 'Tum bildirimleri goren, sorusturan ISG uzmani.',
+    name: 'İSG Uzmanı',
+    legacyName: 'ISG Uzmani',
+    description: 'Tüm bildirimleri gören, soruşturan İSG uzmanı.',
     permissions: [
       'REPORT_CREATE_ACCIDENT',
       'REPORT_CREATE_NEARMISS',
@@ -50,8 +55,9 @@ const SYSTEM_ROLES: {
     ],
   },
   {
-    name: 'Yonetici',
-    description: 'Kullanici onayi ve yetkilendirme yapan yonetici.',
+    name: 'Yönetici',
+    legacyName: 'Yonetici',
+    description: 'Kullanıcı onayı ve yetkilendirme yapan yönetici.',
     permissions: [
       'USER_VIEW',
       'USER_APPROVE',
@@ -66,41 +72,105 @@ const SYSTEM_ROLES: {
   },
 ];
 
-const DEFAULT_DEPARTMENTS = [
-  { name: 'Uretim', code: 'URT' },
-  { name: 'Bakim', code: 'BKM' },
+const DEFAULT_DEPARTMENTS: {
+  name: string;
+  legacyName?: string;
+  code: string;
+}[] = [
+  { name: 'Üretim', legacyName: 'Uretim', code: 'URT' },
+  { name: 'Bakım', legacyName: 'Bakim', code: 'BKM' },
   { name: 'Depo / Lojistik', code: 'LOJ' },
   { name: 'Kalite', code: 'KAL' },
-  { name: 'Idari Isler', code: 'IDR' },
+  { name: 'İdari İşler', legacyName: 'Idari Isler', code: 'IDR' },
 ];
+
+// Ad degisikligine dayanikli rol upsert'i.
+// Once guncel ad, sonra eski (legacy) ad aranir; boylece Turkce karakter
+// duzeltmesi mevcut veritabaninda ikinci bir rol olusturmaz.
+async function upsertRole(role: (typeof SYSTEM_ROLES)[number]) {
+  const { legacyName, ...data } = role;
+
+  const current = await prisma.role.findUnique({ where: { name: data.name } });
+  const legacy = legacyName
+    ? await prisma.role.findUnique({ where: { name: legacyName } })
+    : null;
+
+  // Iki ayri kayit birden varsa otomatik birlestirme yapilmaz.
+  if (current && legacy && current.id !== legacy.id) {
+    throw new Error(
+      `Hem "${legacyName}" hem "${data.name}" adli rol mevcut. ` +
+        'Otomatik birlestirme yapilmadi; kullanici atamalarini kontrol edip ' +
+        'birini elle kaldirin.',
+    );
+  }
+
+  const target = current ?? legacy;
+  if (target) {
+    await prisma.role.update({
+      where: { id: target.id },
+      data: {
+        name: data.name,
+        description: data.description,
+        permissions: data.permissions,
+      },
+    });
+    return;
+  }
+
+  await prisma.role.create({ data: { ...data, isSystem: true } });
+}
+
+// Ad degisikligine dayanikli birim upsert'i.
+// Mevcut birimlerde yalnizca ad duzeltilir; kod ve uyelikler korunur.
+async function upsertDepartment(dep: (typeof DEFAULT_DEPARTMENTS)[number]) {
+  const { legacyName, ...data } = dep;
+
+  const current = await prisma.department.findUnique({
+    where: { name: data.name },
+  });
+  const legacy = legacyName
+    ? await prisma.department.findUnique({ where: { name: legacyName } })
+    : null;
+
+  if (current && legacy && current.id !== legacy.id) {
+    throw new Error(
+      `Hem "${legacyName}" hem "${data.name}" adli birim mevcut. ` +
+        'Otomatik birlestirme yapilmadi; birim uyeliklerini kontrol edip ' +
+        'birini elle kaldirin.',
+    );
+  }
+
+  if (current) return; // Zaten guncel adla var, dokunma
+  if (legacy) {
+    await prisma.department.update({
+      where: { id: legacy.id },
+      data: { name: data.name },
+    });
+    return;
+  }
+
+  await prisma.department.create({ data });
+}
 
 async function main() {
   console.log('Seed baslatiliyor...');
 
   // 1) Sistem rolleri
   for (const role of SYSTEM_ROLES) {
-    await prisma.role.upsert({
-      where: { name: role.name },
-      update: { permissions: role.permissions, description: role.description },
-      create: { ...role, isSystem: true },
-    });
+    await upsertRole(role);
   }
   console.log(`${SYSTEM_ROLES.length} sistem rolu hazir.`);
 
   // 2) Varsayilan birimler
   for (const dep of DEFAULT_DEPARTMENTS) {
-    await prisma.department.upsert({
-      where: { name: dep.name },
-      update: {},
-      create: dep,
-    });
+    await upsertDepartment(dep);
   }
   console.log(`${DEFAULT_DEPARTMENTS.length} birim hazir.`);
 
   // 3) Onceden tanimli super admin
   const email = (process.env.SUPER_ADMIN_EMAIL || 'admin@hse.local').toLowerCase();
   const password = process.env.SUPER_ADMIN_PASSWORD || 'Admin123!';
-  const name = process.env.SUPER_ADMIN_NAME || 'Sistem Yoneticisi';
+  const name = process.env.SUPER_ADMIN_NAME || 'Sistem Yöneticisi';
   const [firstName, ...rest] = name.split(' ');
   const lastName = rest.join(' ') || 'Admin';
 

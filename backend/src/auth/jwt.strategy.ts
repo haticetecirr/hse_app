@@ -25,9 +25,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       },
     });
 
-    if (!user) throw new UnauthorizedException('Kullanici bulunamadi.');
+    if (!user) throw new UnauthorizedException('Kullanıcı bulunamadı.');
     if (user.status === 'SUSPENDED') {
-      throw new UnauthorizedException('Hesabiniz askiya alinmis.');
+      throw new UnauthorizedException('Hesabınız askıya alınmış.');
     }
 
     return {

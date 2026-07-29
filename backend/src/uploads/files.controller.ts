@@ -28,7 +28,7 @@ export class FilesController {
     try {
       stat = await this.storage.getStat(key);
     } catch {
-      throw new NotFoundException('Dosya bulunamadi.');
+      throw new NotFoundException('Dosya bulunamadı.');
     }
 
     const contentType =
