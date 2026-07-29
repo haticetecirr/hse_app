@@ -122,6 +122,71 @@ h1, h2, h3 {
   margin: 0 auto;
 }
 
+/* Mobil navigasyon (hamburger menu).
+   Masaustunde hamburger ve overlay gizli; sidebar sticky olarak kalir. */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin-right: auto; /* topbar flex-end; hamburger solda kalir */
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.nav-toggle:hover {
+  background: #f8fafc;
+}
+.nav-toggle span {
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+}
+.nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  padding: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.5);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .nav-toggle { display: inline-flex; }
+  .nav-overlay { display: block; }
+  /* Hamburger overlay'in ustunde kalsin ki menuyu kapatabilsin */
+  .topbar {
+    z-index: 35;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 40;
+    overflow-y: auto;
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, visibility 0.2s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  .sidebar.is-open {
+    visibility: visible;
+    transform: translateX(0);
+  }
+}
+
 /* Cards */
 .card {
   background: var(--surface);
@@ -351,7 +416,6 @@ tbody tr:hover {
 }
 @media (max-width: 720px) {
   .bodymap-layout { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
 }
 .body-svg {
   background: #f8fafc;

@@ -57,6 +57,8 @@ export const en = {
       notifications: 'Notifications',
       audit: 'Audit Log',
       profile: 'My Profile',
+      openMenu: 'Open menu',
+      closeMenu: 'Close menu',
     },
     profile: {
       title: 'My Profile',

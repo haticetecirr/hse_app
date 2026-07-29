@@ -57,6 +57,8 @@ export const tr = {
       notifications: 'Bildirimler',
       audit: 'Denetim Kaydı',
       profile: 'Profilim',
+      openMenu: 'Menü aç',
+      closeMenu: 'Menü kapat',
     },
     profile: {
       title: 'Profilim',
