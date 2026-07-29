@@ -315,7 +315,7 @@ export const tr = {
       title: 'Ramak Kala Bildirimi',
       category: 'Kategori',
       hazard: 'Tehlike Sınıfı',
-      riskAssessment: 'Risk Değerlendirme (5x5 Matris)',
+      riskAssessment: 'Risk Değerlendirme',
       severity: 'Olası Ciddiyet (1-5)',
       likelihood: 'Olasılık (1-5)',
       riskResult: 'Risk Sonucu',
