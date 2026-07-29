@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import {
   hasPermission,
   isVideoUrl,
   Report,
-  AdminUser,
+  AssignableUser,
   REPORT_STATUSES,
 } from '../types';
 import { PrintableReport } from '../components/PrintableReport';
@@ -46,13 +46,36 @@ export function ReportDetailPage() {
   const canAssign = hasPermission(me, 'REPORT_ASSIGN');
   const canAction = hasPermission(me, 'ACTION_MANAGE', 'REPORT_INVESTIGATE');
 
-  const { data: users } = useQuery({
-    queryKey: ['verified-users'],
+  // Atama listesi. Yalnizca atama alanlarini gorebilen kullanici icin
+  // istek atilir (enabled), yetkisiz kullanici gereksiz 403 tetiklemez.
+  const {
+    data: users,
+    isError: usersError,
+    error: usersErrorObj,
+  } = useQuery({
+    queryKey: ['assignable-users'],
     queryFn: async () =>
-      (await api.get<AdminUser[]>('/users', { params: { status: 'VERIFIED' } }))
-        .data,
+      (await api.get<AssignableUser[]>('/users/assignable')).data,
     enabled: canAssign || canAction,
   });
+
+  // Liste cekilemezse sayfa cokmesin; mevcut hata alanina yazilir.
+  useEffect(() => {
+    if (usersError) setError(errorMessage(usersErrorObj));
+  }, [usersError, usersErrorObj]);
+
+  // Iki atama select'i de ayni listeyi kullanir; secenekler tek yerde
+  // uretilir. Liste bos ise bos durum secenegi gosterilir.
+  const assignableOptions =
+    users && users.length === 0 ? (
+      <option disabled>{t('common.noData')}</option>
+    ) : (
+      users?.map((u) => (
+        <option key={u.id} value={u.id}>
+          {u.firstName} {u.lastName}
+        </option>
+      ))
+    );
 
   const [newStatus, setNewStatus] = useState('');
   const [assignee, setAssignee] = useState('');
@@ -414,11 +437,7 @@ export function ReportDetailPage() {
                       onChange={(e) => setActionAssignee(e.target.value)}
                     >
                       <option value="">{t('reports.assignedTo')}</option>
-                      {users?.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.firstName} {u.lastName}
-                        </option>
-                      ))}
+                      {assignableOptions}
                     </select>
                   </div>
                   <div className="field">
@@ -479,11 +498,7 @@ export function ReportDetailPage() {
                       onChange={(e) => setAssignee(e.target.value)}
                     >
                       <option value="">—</option>
-                      {users?.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.firstName} {u.lastName}
-                        </option>
-                      ))}
+                      {assignableOptions}
                     </select>
                     <button className="btn btn-sm" onClick={assign}>
                       {t('common.save')}

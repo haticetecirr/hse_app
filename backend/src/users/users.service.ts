@@ -28,6 +28,20 @@ const userSelect = {
   },
 };
 
+// Atama ekranlari icin dar gorunum. Veri minimizasyonu: email, phone,
+// passwordHash, status, izin listesi ve denetim alanlari sorguya hic
+// dahil edilmez; boylece response'a kazara sizamaz.
+const assignableSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  rank: true,
+  role: { select: { id: true, name: true } },
+  departments: {
+    select: { department: { select: { id: true, name: true } } },
+  },
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -42,6 +56,23 @@ export class UsersService {
       select: userSelect,
     });
     return users.map(this.flatten);
+  }
+
+  // Bildirim / duzeltici faaliyet atamalarinda secilebilecek kullanicilar.
+  // Yalnizca VERIFIED hesaplar doner; PENDING, REJECTED ve SUSPENDED
+  // hesaplar atanabilir degildir. (Semada ayrica bir aktiflik alani yok.)
+  // Super admin teknik bir hesaptir; atama listesine girmez.
+  async findAssignable() {
+    const users = await this.prisma.user.findMany({
+      where: { status: 'VERIFIED', isSuperAdmin: false },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      select: assignableSelect,
+    });
+
+    return users.map((u) => ({
+      ...u,
+      departments: u.departments.map((d) => d.department),
+    }));
   }
 
   async findOne(id: string) {

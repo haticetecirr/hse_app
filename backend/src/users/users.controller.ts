@@ -34,6 +34,16 @@ export class UsersController {
     return this.users.findAll(status);
   }
 
+  // DIKKAT: Bu route ':id' route'undan ONCE tanimli olmali. Aksi halde
+  // Nest "assignable" kelimesini bir kullanici ID'si olarak yorumlar.
+  // RequirePermissions coklu izni OR olarak degerlendirir (PermissionsGuard
+  // icinde .some()); yani bu uclerden herhangi biri yeterlidir.
+  @RequirePermissions('REPORT_ASSIGN', 'ACTION_MANAGE', 'REPORT_INVESTIGATE')
+  @Get('assignable')
+  findAssignable() {
+    return this.users.findAssignable();
+  }
+
   @RequirePermissions('USER_VIEW', 'USER_APPROVE', 'USER_MANAGE')
   @Get(':id')
   findOne(@Param('id') id: string) {

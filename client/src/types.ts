@@ -90,6 +90,17 @@ export interface AdminUser {
   departments: { id: string; name: string }[];
 }
 
+// GET /users/assignable yanitinin dar tipi. Atama listelerinde AdminUser
+// yerine bu kullanilir; endpoint email/phone/status gibi alanlari donmez.
+export interface AssignableUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  rank: Rank | null;
+  role: { id: string; name: string } | null;
+  departments: { id: string; name: string }[];
+}
+
 export type ReportType = 'ACCIDENT' | 'NEAR_MISS';
 export type ReportStatus =
   | 'DRAFT'
