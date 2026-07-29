@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
   ValidateNested,
@@ -173,8 +174,12 @@ export class UpdateStatusDto {
   @IsEnum(ReportStatus)
   status: ReportStatus;
 
+  // Yalnizca ust sinir dogrulanir. Zorunluluk ve "trim sonrasi en az 10
+  // karakter" kurali servis katmaninda, sadece CLOSED icin uygulanir;
+  // boylece diger durum gecisleri yanlislikla engellenmez.
   @IsOptional()
   @IsString()
+  @MaxLength(2000, { message: 'Kapatma açıklaması en fazla 2000 karakter olabilir.' })
   closingNote?: string;
 }
 
