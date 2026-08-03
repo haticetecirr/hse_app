@@ -65,6 +65,9 @@ export function RegisterPage() {
             <div className="field">
               <label>{t('auth.firstName')}</label>
               <input
+                type="text"
+                name="firstName"
+                autoComplete="given-name"
                 value={form.firstName}
                 onChange={(e) => set('firstName', e.target.value)}
                 required
@@ -73,6 +76,9 @@ export function RegisterPage() {
             <div className="field">
               <label>{t('auth.lastName')}</label>
               <input
+                type="text"
+                name="lastName"
+                autoComplete="family-name"
                 value={form.lastName}
                 onChange={(e) => set('lastName', e.target.value)}
                 required
@@ -83,6 +89,8 @@ export function RegisterPage() {
             <label>{t('auth.email')}</label>
             <input
               type="email"
+              name="email"
+              autoComplete="email"
               value={form.email}
               onChange={(e) => set('email', e.target.value)}
               required
@@ -91,6 +99,9 @@ export function RegisterPage() {
           <div className="field">
             <label>{t('auth.phone')}</label>
             <input
+              type="tel"
+              name="phone"
+              autoComplete="tel"
               value={form.phone}
               onChange={(e) => set('phone', e.target.value)}
             />
@@ -99,6 +110,8 @@ export function RegisterPage() {
             <label>{t('auth.password')}</label>
             <input
               type="password"
+              name="password"
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => set('password', e.target.value)}
               required
