@@ -379,6 +379,7 @@ model CorrectiveAction {
   status       ActionStatus @default(OPEN)
   completedAt  DateTime?
   note         String?
+  attachments  String[] // Faaliyete ait foto/video yollari (Report.attachments ile ayni bicim)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }

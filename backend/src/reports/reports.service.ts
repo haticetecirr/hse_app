@@ -357,6 +357,7 @@ export class ReportsService {
           description: dto.description,
           assignedToId: dto.assignedToId,
           dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+          attachments: dto.attachments ?? [],
         },
       });
 

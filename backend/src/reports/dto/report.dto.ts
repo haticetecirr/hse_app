@@ -200,4 +200,10 @@ export class CreateActionDto {
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+
+  // Foto/video yollari; Report.attachments ile ayni bicimde saklanir.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attachments?: string[];
 }
