@@ -56,22 +56,43 @@ export class FilesController {
    * "/api/files/<key>" bicimide tutuluyor.
    */
   private async assertUserMayAccess(key: string, user: AuthUser) {
-    const reports = await this.prisma.report.findMany({
-      where: { attachments: { has: `/api/files/${key}` } },
-      select: {
-        reporterId: true,
-        assignedToId: true,
-        departmentId: true,
-      },
-    });
+    const path = `/api/files/${key}`;
 
-    // Hicbir bildirime bagli olmayan anahtar servis edilmez.
-    if (reports.length === 0) {
+    // Dosya ya dogrudan bir bildirimin ekinde, ya da o bildirime bagli bir
+    // duzeltici faaliyetin ekinde olabilir. Her iki durumda da yetki, ekin
+    // ait oldugu BILDIRIMIN gorunurlugu uzerinden belirlenir.
+    const [reports, actions] = await Promise.all([
+      this.prisma.report.findMany({
+        where: { attachments: { has: path } },
+        select: {
+          reporterId: true,
+          assignedToId: true,
+          departmentId: true,
+        },
+      }),
+      this.prisma.correctiveAction.findMany({
+        where: { attachments: { has: path } },
+        select: {
+          report: {
+            select: {
+              reporterId: true,
+              assignedToId: true,
+              departmentId: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const owners = [...reports, ...actions.map((a) => a.report)];
+
+    // Hicbir bildirime/faaliyete bagli olmayan anahtar servis edilmez.
+    if (owners.length === 0) {
       throw new NotFoundException('Dosya bulunamadı.');
     }
 
-    // Ayni dosya birden fazla bildirime bagliysa, birini gormek yeterlidir.
-    if (!reports.some((r) => canUserViewReport(r, user))) {
+    // Ayni dosya birden fazla kayda bagliysa, birini gormek yeterlidir.
+    if (!owners.some((r) => canUserViewReport(r, user))) {
       throw new ForbiddenException('Bu dosyayı görme yetkiniz yok.');
     }
   }

@@ -3,11 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { api, errorMessage } from '../api/client';
 import { isVideoUrl } from '../types';
 import { AuthenticatedImage, AuthenticatedVideo } from './AuthenticatedMedia';
+import { CameraCapture, CaptureMode } from './CameraCapture';
 
 interface Props {
   value: string[];
   onChange: (urls: string[]) => void;
 }
+
+// Sunucudaki sinirlarla ayni tutulmali (uploads.controller.ts).
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 // Fotograf yukleme + onizleme. URL'ler ust forma (attachments) aktarilir.
 export function PhotoUpload({ value, onChange }: Props) {
@@ -15,6 +20,7 @@ export function PhotoUpload({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [captureMode, setCaptureMode] = useState<CaptureMode | null>(null);
 
   // Bu oturumda secilen dosyalarin YEREL onizlemeleri: sunucu URL'i -> object URL.
   // Yeni yuklenen dosya henuz bir bildirime bagli olmadigi icin korunan
@@ -32,13 +38,32 @@ export function PhotoUpload({ value, onChange }: Props) {
     [],
   );
 
-  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // Yukleme akisinin TEK yeri. Hem dosya secici hem kamera bunu kullanir.
+  async function uploadFiles(selected: File[]) {
+    if (selected.length === 0) return;
+
+    // Boyut kontrolu (sunucu tarafinda da ayni sinirlar uygulanir).
+    const tooBig = selected.find((f) =>
+      f.type.startsWith('video/')
+        ? f.size > MAX_VIDEO_BYTES
+        : f.size > MAX_IMAGE_BYTES,
+    );
+    if (tooBig) {
+      const isVideo = tooBig.type.startsWith('video/');
+      setError(
+        t('accidentForm.fileTooLarge', {
+          name: tooBig.name,
+          limit: Math.round(
+            (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES) / (1024 * 1024),
+          ),
+        }),
+      );
+      return;
+    }
+
     setBusy(true);
     setError('');
     try {
-      const selected = Array.from(files);
       const fd = new FormData();
       selected.forEach((f) => fd.append('files', f));
       const { data } = await api.post<{ urls: string[] }>('/uploads', fd, {
@@ -59,8 +84,20 @@ export function PhotoUpload({ value, onChange }: Props) {
       setError(errorMessage(err));
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = '';
     }
+  }
+
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadFiles(Array.from(files));
+    if (inputRef.current) inputRef.current.value = '';
+  }
+
+  // Kameradan gelen dosya da ayni yukleme akisina girer.
+  async function onCaptured(file: File) {
+    setCaptureMode(null);
+    await uploadFiles([file]);
   }
 
   function remove(url: string) {
@@ -90,14 +127,40 @@ export function PhotoUpload({ value, onChange }: Props) {
         onChange={onFiles}
         style={{ display: 'none' }}
       />
-      <button
-        type="button"
-        className="btn btn-secondary"
-        onClick={() => inputRef.current?.click()}
-        disabled={busy}
-      >
-        📷 {busy ? t('common.uploading') : t('accidentForm.uploadPhotos')}
-      </button>
+      <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setCaptureMode('photo')}
+          disabled={busy}
+        >
+          📷 {t('accidentForm.takePhoto')}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setCaptureMode('video')}
+          disabled={busy}
+        >
+          🎥 {t('accidentForm.takeVideo')}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+        >
+          📁 {busy ? t('common.uploading') : t('accidentForm.chooseFile')}
+        </button>
+      </div>
+
+      {captureMode && (
+        <CameraCapture
+          mode={captureMode}
+          onCancel={() => setCaptureMode(null)}
+          onConfirm={onCaptured}
+        />
+      )}
 
       {error && (
         <div className="alert alert-error" style={{ marginTop: 8 }}>

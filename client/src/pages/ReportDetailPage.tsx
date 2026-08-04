@@ -12,6 +12,7 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
 } from '../types';
 import { PrintableReport } from '../components/PrintableReport';
+import { PhotoUpload } from '../components/PhotoUpload';
 import {
   AuthenticatedImage,
   AuthenticatedVideo,
@@ -119,6 +120,7 @@ export function ReportDetailPage() {
   const [actionDesc, setActionDesc] = useState('');
   const [actionAssignee, setActionAssignee] = useState('');
   const [actionDue, setActionDue] = useState('');
+  const [actionAttachments, setActionAttachments] = useState<string[]>([]);
 
   const closingSelected = newStatus === 'CLOSED';
   // Bosluklar sayilmaz; backend de trim sonrasi >= 10 karakter bekler.
@@ -168,11 +170,13 @@ export function ReportDetailPage() {
         description: actionDesc,
         assignedToId: actionAssignee || undefined,
         dueDate: actionDue ? new Date(actionDue).toISOString() : undefined,
+        attachments: actionAttachments,
       });
       qc.invalidateQueries({ queryKey: ['report', id] });
       setActionDesc('');
       setActionAssignee('');
       setActionDue('');
+      setActionAttachments([]);
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -471,7 +475,45 @@ export function ReportDetailPage() {
                 <tbody>
                   {r.correctiveActions.map((a) => (
                     <tr key={a.id}>
-                      <td>{a.description}</td>
+                      <td>
+                        {a.description}
+                        {a.attachments && a.attachments.length > 0 && (
+                          <div
+                            className="flex gap-8 mt-8"
+                            style={{ flexWrap: 'wrap' }}
+                          >
+                            {a.attachments.map((url) =>
+                              isVideoUrl(url) ? (
+                                <AuthenticatedVideo
+                                  key={url}
+                                  url={url}
+                                  controls
+                                  style={{
+                                    width: 160,
+                                    height: 110,
+                                    borderRadius: 6,
+                                    border: '1px solid var(--border)',
+                                    background: '#000',
+                                  }}
+                                />
+                              ) : (
+                                <AuthenticatedImage
+                                  key={url}
+                                  url={url}
+                                  openOnClick
+                                  style={{
+                                    width: 90,
+                                    height: 70,
+                                    objectFit: 'cover',
+                                    borderRadius: 6,
+                                    border: '1px solid var(--border)',
+                                  }}
+                                />
+                              ),
+                            )}
+                          </div>
+                        )}
+                      </td>
                       <td>
                         {a.assignedTo
                           ? `${a.assignedTo.firstName} ${a.assignedTo.lastName}`
@@ -547,6 +589,11 @@ export function ReportDetailPage() {
                     +
                   </button>
                 </div>
+                {/* Faaliyete foto/video eki - mevcut yukleme akisi */}
+                <PhotoUpload
+                  value={actionAttachments}
+                  onChange={setActionAttachments}
+                />
               </div>
             )}
           </div>

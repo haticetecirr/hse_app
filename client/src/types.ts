@@ -130,6 +130,7 @@ export interface CorrectiveAction {
   status: string;
   dueDate?: string;
   assignedTo?: { id: string; firstName: string; lastName: string } | null;
+  attachments?: string[];
 }
 
 export interface Report {
